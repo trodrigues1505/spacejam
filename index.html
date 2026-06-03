@@ -242,7 +242,8 @@
   .form-row { margin-bottom: 1.5rem; }
   .form-row label { display: block; font-family: 'Bebas Neue', display; font-size: 0.85rem; letter-spacing: 4px; color: var(--gold); margin-bottom: 0.5rem; }
   .form-row label .req { color: var(--red-light); margin-left: 3px; }
-  .form-row input, .form-row textarea, .form-row select { width: 100%; background: rgba(245,200,66,0.04); border: 1px solid rgba(245,200,66,0.25); color: var(--cream); font-family: 'Special Elite', serif; font-size: 0.95rem; padding: 0.7rem 1rem; outline: none; transition: border-color 0.2s; -webkit-appearance: none; }
+  .form-row input:not([type="checkbox"]), .form-row textarea, .form-row select { width: 100%; background: rgba(245,200,66,0.04); border: 1px solid rgba(245,200,66,0.25); color: var(--cream); font-family: 'Special Elite', serif; font-size: 0.95rem; padding: 0.7rem 1rem; outline: none; transition: border-color 0.2s; -webkit-appearance: none; }
+  .form-row input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: #E74C3C; -webkit-appearance: checkbox; appearance: checkbox; background: white; border: none; padding: 0; flex-shrink: 0; }
   .form-row input:focus, .form-row textarea:focus { border-color: var(--gold); }
   .form-row input::placeholder, .form-row textarea::placeholder { color: rgba(245,200,66,0.2); font-style: italic; }
   .form-row textarea { min-height: 90px; resize: vertical; }
