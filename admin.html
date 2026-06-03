@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Space Jam — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Special+Elite&family=Crimson+Pro:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root {
+    --gold: #F5C842; --red: #C0392B; --red-light: #E74C3C;
+    --cream: #F2E8CC; --bg: #0A0D1A; --bg-mid: #111527;
+    --border: rgba(245,200,66,0.3); --text: #D4C9A8;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--cream); font-family:'Special Elite',serif; min-height:100vh; }
+
+  /* LOGIN */
+  #loginScreen {
+    min-height: 100vh; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:2rem;
+  }
+  #loginScreen h1 { font-family:'Bebas Neue',display; font-size:3rem; color:var(--gold); letter-spacing:4px; }
+  #loginScreen p { font-family:'Crimson Pro',serif; color:var(--text); font-size:1rem; }
+
+  /* ADMIN */
+  #adminScreen { display:none; }
+
+  header {
+    background:rgba(10,13,26,0.95); border-bottom:2px solid var(--border);
+    padding:1rem 2rem; display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; z-index:10;
+  }
+  header h1 { font-family:'Bebas Neue',display; font-size:1.5rem; color:var(--gold); letter-spacing:3px; }
+  .admin-user { font-family:'Special Elite',serif; font-size:0.8rem; color:var(--text); display:flex; align-items:center; gap:0.8rem; }
+  .admin-user img { width:32px; height:32px; border-radius:50%; border:2px solid var(--border); }
+  .btn-logout { background:none; border:1px solid var(--border); color:var(--text); font-family:'Bebas Neue',display; letter-spacing:2px; font-size:0.75rem; padding:0.3rem 0.8rem; cursor:pointer; }
+  .btn-logout:hover { border-color:var(--red); color:var(--red-light); }
+
+  .admin-body { max-width:1200px; margin:0 auto; padding:2rem; display:grid; grid-template-columns:1fr 1fr; gap:2rem; }
+
+  @media(max-width:768px) { .admin-body { grid-template-columns:1fr; } }
+
+  .panel { border:1px solid var(--border); padding:1.5rem; background:rgba(10,13,26,0.5); }
+  .panel h2 { font-family:'Bebas Neue',display; font-size:1.3rem; color:var(--gold); letter-spacing:3px; margin-bottom:1.2rem; padding-bottom:0.8rem; border-bottom:1px solid var(--border); }
+
+  label { display:block; font-family:'Bebas Neue',display; font-size:0.75rem; letter-spacing:4px; color:var(--gold); margin-bottom:0.4rem; margin-top:1rem; }
+  label:first-of-type { margin-top:0; }
+  input, textarea {
+    width:100%; background:rgba(245,200,66,0.04); border:1px solid rgba(245,200,66,0.2);
+    color:var(--cream); font-family:'Crimson Pro',serif; font-size:0.95rem;
+    padding:0.6rem 0.8rem; outline:none; transition:border-color 0.2s;
+  }
+  input:focus, textarea:focus { border-color:var(--gold); }
+  input::placeholder, textarea::placeholder { color:rgba(245,200,66,0.2); font-style:italic; }
+  textarea { min-height:80px; resize:vertical; }
+
+  .btn-publish {
+    width:100%; margin-top:1.2rem; background:var(--red); border:none;
+    color:var(--cream); font-family:'Bebas Neue',display; font-size:1.1rem;
+    letter-spacing:4px; padding:0.8rem; cursor:pointer;
+    clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);
+    transition:background 0.2s;
+  }
+  .btn-publish:hover { background:#a93226; }
+  .btn-publish:disabled { opacity:0.4; cursor:default; }
+
+  .msg { font-family:'Crimson Pro',serif; font-size:0.85rem; text-align:center; margin-top:0.8rem; min-height:1.2rem; }
+  .msg.ok { color:#2ecc71; }
+  .msg.err { color:var(--red-light); }
+
+  /* LISTA */
+  .submissions-list { display:flex; flex-direction:column; gap:0.8rem; max-height:70vh; overflow-y:auto; }
+
+  .sub-item {
+    border:1px solid rgba(245,200,66,0.15); padding:1rem;
+    display:flex; justify-content:space-between; align-items:flex-start; gap:1rem;
+    transition:border-color 0.2s;
+  }
+  .sub-item:hover { border-color:var(--gold); }
+  .sub-info { flex:1; }
+  .sub-planet { font-family:'Bebas Neue',display; font-size:1.2rem; color:var(--gold); letter-spacing:2px; }
+  .sub-species { font-family:'Special Elite',serif; font-size:0.75rem; color:var(--red-light); letter-spacing:2px; margin-bottom:0.3rem; }
+  .sub-author { font-family:'Crimson Pro',serif; font-size:0.8rem; color:rgba(245,200,66,0.4); }
+  .sub-actions { display:flex; flex-direction:column; gap:0.4rem; flex-shrink:0; }
+  .btn-edit { background:none; border:1px solid var(--border); color:var(--gold); font-family:'Bebas Neue',display; font-size:0.7rem; letter-spacing:2px; padding:0.25rem 0.6rem; cursor:pointer; }
+  .btn-edit:hover { background:rgba(245,200,66,0.1); }
+  .btn-delete { background:none; border:1px solid rgba(192,57,43,0.3); color:var(--red-light); font-family:'Bebas Neue',display; font-size:0.7rem; letter-spacing:2px; padding:0.25rem 0.6rem; cursor:pointer; }
+  .btn-delete:hover { background:rgba(192,57,43,0.1); }
+  .empty-list { font-family:'Crimson Pro',serif; font-size:0.95rem; color:rgba(245,200,66,0.3); font-style:italic; text-align:center; padding:2rem; }
+
+  .stats { display:flex; gap:1.5rem; margin-bottom:1.5rem; }
+  .stat { text-align:center; }
+  .stat .n { font-family:'Bebas Neue',display; font-size:2.5rem; color:var(--gold); line-height:1; }
+  .stat .l { font-family:'Special Elite',serif; font-size:0.7rem; color:rgba(245,200,66,0.4); letter-spacing:2px; }
+
+  .form-cols { display:grid; grid-template-columns:1fr 1fr; gap:0.8rem; }
+  @media(max-width:480px) { .form-cols { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <h1>★ Space Jam Admin ★</h1>
+  <p>Acesso restrito ao organizador</p>
+  <div id="googleBtn"></div>
+</div>
+
+<!-- ADMIN -->
+<div id="adminScreen">
+  <header>
+    <h1>Space Jam — Painel Admin</h1>
+    <div class="admin-user">
+      <img id="adminAvatar" src="" alt="">
+      <span id="adminName"></span>
+      <button class="btn-logout" onclick="logout()">Sair</button>
+    </div>
+  </header>
+
+  <div class="admin-body">
+
+    <!-- FORM PUBLICAR -->
+    <div class="panel">
+      <h2 id="formTitle">Publicar Material</h2>
+
+      <input type="hidden" id="editId">
+
+      <div class="form-cols">
+        <div>
+          <label>Nome do Planeta *</label>
+          <input type="text" id="fPlanet" placeholder="Ex: Vorath-7">
+        </div>
+        <div>
+          <label>Nome da Espécie *</label>
+          <input type="text" id="fSpecies" placeholder="Ex: Krathari">
+        </div>
+      </div>
+
+      <div class="form-cols">
+        <div>
+          <label>Autor *</label>
+          <input type="text" id="fAuthor" placeholder="Nome do participante">
+        </div>
+        <div>
+          <label>Link do Arquivo (Drive)</label>
+          <input type="url" id="fFile" placeholder="https://drive.google.com/...">
+        </div>
+      </div>
+
+      <label>Resumo (1 linha)</label>
+      <input type="text" id="fSummary" placeholder="Frase que captura a essência do planeta...">
+
+      <label>① Conceito do Planeta</label>
+      <textarea id="fCol1" placeholder="Nome, conceito central, introdução narrativa, história, conflitos..."></textarea>
+
+      <label>② Estrutura Planetária</label>
+      <textarea id="fCol2" placeholder="Superfície, atmosfera, fauna, flora, sociedade, gravidade, nível tecnológico..."></textarea>
+
+      <label>③ Espécie Predominante</label>
+      <textarea id="fCol3" placeholder="Aparência, comportamento, cultura, estatísticas..."></textarea>
+
+      <label>④ Raça Jogável</label>
+      <textarea id="fCol4" placeholder="Modificadores, habilidades, restrições, orientações..."></textarea>
+
+      <button class="btn-publish" id="btnPublish" onclick="publishSubmission()">★ Publicar no Site</button>
+      <div class="msg" id="formMsg"></div>
+    </div>
+
+    <!-- LISTA -->
+    <div class="panel">
+      <h2>Materiais Publicados</h2>
+      <div class="stats">
+        <div class="stat"><div class="n" id="statCount">0</div><div class="l">Publicados</div></div>
+        <div class="stat"><div class="n" id="statSupporters">—</div><div class="l">Apoiadores</div></div>
+      </div>
+      <div class="submissions-list" id="submissionsList">
+        <div class="empty-list">Nenhum material publicado ainda.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const ADMIN_EMAIL = 't.rodrigues1505@gmail.com';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAjdwDjAmIkrUuhvYK1zjeh4_poXpxqfy4",
+    authDomain: "space-jam-b46b0.firebaseapp.com",
+    projectId: "space-jam-b46b0",
+    storageBucket: "space-jam-b46b0.firebasestorage.app",
+    messagingSenderId: "897984577143",
+    appId: "1:897984577143:web:9cff9e84249d9f208c9072"
+  };
+
+  const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const subCol = collection(db, "submissions");
+  const supCol = collection(db, "supporters");
+
+  let currentUser = null;
+
+  // ── GOOGLE LOGIN ─────────────────────────────────────────────────────
+  window.handleCredentialResponse = function(response) {
+    const payload = parseJwt(response.credential);
+    if (payload.email !== ADMIN_EMAIL) {
+      alert('Acesso negado. Este painel é restrito ao organizador.');
+      return;
+    }
+    currentUser = payload;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminScreen').style.display = 'block';
+    document.getElementById('adminName').textContent = payload.name;
+    document.getElementById('adminAvatar').src = payload.picture;
+    loadData();
+  };
+
+  window.logout = function() {
+    currentUser = null;
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('adminScreen').style.display = 'none';
+  };
+
+  google.accounts.id.initialize({
+    client_id: '312813213923-f8igii6bq06rea4tkhi35u5oes4its0p.apps.googleusercontent.com',
+    callback: window.handleCredentialResponse,
+  });
+  google.accounts.id.renderButton(document.getElementById('googleBtn'), {
+    theme: 'filled_black', size: 'large', text: 'signin_with',
+  });
+
+  // ── LOAD DATA ────────────────────────────────────────────────────────
+  function loadData() {
+    const q = query(subCol, orderBy("ts", "desc"));
+    onSnapshot(q, (snap) => {
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      document.getElementById('statCount').textContent = items.length;
+      renderList(items);
+    });
+
+    onSnapshot(supCol, (snap) => {
+      document.getElementById('statSupporters').textContent = snap.size;
+    });
+  }
+
+  function renderList(items) {
+    const el = document.getElementById('submissionsList');
+    if (items.length === 0) {
+      el.innerHTML = '<div class="empty-list">Nenhum material publicado ainda.</div>';
+      return;
+    }
+    el.innerHTML = items.map(item => `
+      <div class="sub-item">
+        <div class="sub-info">
+          <div class="sub-planet">${item.planet}</div>
+          <div class="sub-species">${item.species}</div>
+          <div class="sub-author">por ${item.author}</div>
+        </div>
+        <div class="sub-actions">
+          <button class="btn-edit" onclick="editItem('${item.id}')">Editar</button>
+          <button class="btn-delete" onclick="deleteItem('${item.id}', '${item.planet}')">Remover</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ── PUBLISH ──────────────────────────────────────────────────────────
+  window.publishSubmission = async function() {
+    const planet  = document.getElementById('fPlanet').value.trim();
+    const species = document.getElementById('fSpecies').value.trim();
+    const author  = document.getElementById('fAuthor').value.trim();
+
+    if (!planet || !species || !author) {
+      setMsg('Planeta, espécie e autor são obrigatórios.', 'err');
+      return;
+    }
+
+    const data = {
+      planet, species, author,
+      fileUrl:  document.getElementById('fFile').value.trim(),
+      summary:  document.getElementById('fSummary').value.trim(),
+      col1:     document.getElementById('fCol1').value.trim(),
+      col2:     document.getElementById('fCol2').value.trim(),
+      col3:     document.getElementById('fCol3').value.trim(),
+      col4:     document.getElementById('fCol4').value.trim(),
+      ts:       Date.now(),
+    };
+
+    const btn = document.getElementById('btnPublish');
+    btn.disabled = true;
+
+    try {
+      const editId = document.getElementById('editId').value;
+      if (editId) {
+        await updateDoc(doc(db, "submissions", editId), data);
+        setMsg('Material atualizado com sucesso!', 'ok');
+      } else {
+        await addDoc(subCol, data);
+        setMsg('Material publicado com sucesso!', 'ok');
+      }
+      clearForm();
+    } catch(e) {
+      setMsg('Erro: ' + e.message, 'err');
+    }
+
+    btn.disabled = false;
+  };
+
+  // ── EDIT ─────────────────────────────────────────────────────────────
+  window.editItem = function(id) {
+    // Busca o item da lista renderizada via onSnapshot — pega do Firestore
+    import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({ getDoc, doc: fsDoc }) => {
+      getDoc(fsDoc(db, "submissions", id)).then(snap => {
+        if (!snap.exists()) return;
+        const d = snap.data();
+        document.getElementById('editId').value = id;
+        document.getElementById('fPlanet').value  = d.planet  || '';
+        document.getElementById('fSpecies').value = d.species || '';
+        document.getElementById('fAuthor').value  = d.author  || '';
+        document.getElementById('fFile').value    = d.fileUrl || '';
+        document.getElementById('fSummary').value = d.summary || '';
+        document.getElementById('fCol1').value    = d.col1    || '';
+        document.getElementById('fCol2').value    = d.col2    || '';
+        document.getElementById('fCol3').value    = d.col3    || '';
+        document.getElementById('fCol4').value    = d.col4    || '';
+        document.getElementById('formTitle').textContent = 'Editar Material';
+        document.getElementById('btnPublish').textContent = '★ Salvar Alterações';
+        document.querySelector('.panel').scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+  };
+
+  // ── DELETE ───────────────────────────────────────────────────────────
+  window.deleteItem = async function(id, planet) {
+    if (!confirm(`Remover "${planet}" do site?`)) return;
+    try {
+      await deleteDoc(doc(db, "submissions", id));
+    } catch(e) {
+      alert('Erro ao remover: ' + e.message);
+    }
+  };
+
+  // ── HELPERS ──────────────────────────────────────────────────────────
+  function clearForm() {
+    ['fPlanet','fSpecies','fAuthor','fFile','fSummary','fCol1','fCol2','fCol3','fCol4','editId']
+      .forEach(id => document.getElementById(id).value = '');
+    document.getElementById('formTitle').textContent = 'Publicar Material';
+    document.getElementById('btnPublish').textContent = '★ Publicar no Site';
+  }
+
+  function setMsg(txt, type) {
+    const el = document.getElementById('formMsg');
+    el.textContent = txt;
+    el.className = 'msg ' + type;
+    setTimeout(() => { el.textContent = ''; el.className = 'msg'; }, 4000);
+  }
+
+  function parseJwt(token) {
+    try { return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); }
+    catch { return {}; }
+  }
+</script>
+</body>
+</html>
