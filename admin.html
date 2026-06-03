@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Space Jam — Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Special+Elite&family=Crimson+Pro:wght@400;600&display=swap" rel="stylesheet">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://accounts.google.com/gsi/client" async defer onload="initGoogleSignIn()"></script>
 <style>
   :root {
     --gold: #F5C842; --red: #C0392B; --red-light: #E74C3C;
@@ -247,13 +247,17 @@
     document.getElementById('adminScreen').style.display = 'none';
   };
 
-  google.accounts.id.initialize({
-    client_id: '312813213923-f8igii6bq06rea4tkhi35u5oes4its0p.apps.googleusercontent.com',
-    callback: window.handleCredentialResponse,
-  });
-  google.accounts.id.renderButton(document.getElementById('googleBtn'), {
-    theme: 'filled_black', size: 'large', text: 'signin_with',
-  });
+  window.initGoogleSignIn = function() {
+    google.accounts.id.initialize({
+      client_id: '312813213923-f8igii6bq06rea4tkhi35u5oes4its0p.apps.googleusercontent.com',
+      callback: window.handleCredentialResponse,
+    });
+    google.accounts.id.renderButton(document.getElementById('googleBtn'), {
+      theme: 'filled_black', size: 'large', text: 'signin_with',
+    });
+  };
+  // Fallback se o script já carregou antes do onload
+  if (window.google && google.accounts) window.initGoogleSignIn();
 
   // ── LOAD DATA ────────────────────────────────────────────────────────
   function loadData() {
