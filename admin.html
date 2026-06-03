@@ -504,6 +504,7 @@
     <li><a href="#manifesto">Manifesto</a></li>
     <li><a href="#regras">Regras</a></li>
     <li><a href="#envio">Enviar</a></li>
+    <li><a href="#galeria">Materiais</a></li>
   </ul>
 </nav>
 
@@ -768,8 +769,9 @@
       <p class="form-note">As inscrições abrem em 01/07/2026. Os envios são revisados pelos organizadores antes da publicação.</p>
     </form>
     <div class="success-msg" id="successMsg">
-      <h3>★ Transmissão Enviada ★</h3>
-      <p>Seu material foi registrado com sucesso.<br>Um explorador entrará em contato em breve.</p>
+      <h3>★ Formulário Aberto ★</h3>
+      <p>Uma nova aba foi aberta com o Google Forms já preenchido.<br>Confirme os dados e clique em <strong style="color:var(--gold)">Enviar</strong> lá para registrar seu material.</p>
+      <p style="margin-top:0.8rem;font-size:0.85rem;color:rgba(245,200,66,0.4);font-style:italic;">Se a aba não abriu, verifique o bloqueador de popups do seu navegador.</p>
     </div>
   </div>
 </section>
@@ -822,30 +824,45 @@
 function handleSubmit(e) {
   e.preventDefault();
 
-  const btn = document.querySelector('.btn-submit');
-  btn.textContent = '⏳  Abrindo formulário...';
-  btn.classList.add('loading');
-  btn.disabled = true;
+  // Validação básica
+  const required = ['entry.142922766','entry.1374293792','entry.1190836357','entry.1876014314','entry.1115591710'];
+  for (const name of required) {
+    const el = document.querySelector('[name="' + name + '"]');
+    if (!el || !el.value.trim()) {
+      el && el.focus();
+      return;
+    }
+  }
 
   const BASE = 'https://docs.google.com/forms/d/e/1FAIpQLSeraH2bc0rlfXR5NDdlX4_9y0_cuxVC8B7MGxh_rgbaVKPttA/viewform?usp=pp_url';
-
   const params = new URLSearchParams({
-    'entry.142922766': document.querySelector('[name="entry.142922766"]').value,
+    'entry.142922766':  document.querySelector('[name="entry.142922766"]').value,
     'entry.1374293792': document.querySelector('[name="entry.1374293792"]').value,
     'entry.1190836357': document.querySelector('[name="entry.1190836357"]').value,
     'entry.1876014314': document.querySelector('[name="entry.1876014314"]').value,
-    'entry.308873361':  document.querySelector('[name="entry.308873361"]').value,
+    'entry.308873361':  document.querySelector('[name="entry.308873361"]').value || '',
     'entry.1115591710': document.querySelector('[name="entry.1115591710"]').value,
-    'entry.615693776':  document.querySelector('[name="entry.615693776"]').value,
+    'entry.615693776':  document.querySelector('[name="entry.615693776"]').value || '',
   });
 
-  window.open(BASE + '&' + params.toString(), '_blank');
+  // Abre direto — dentro do handler do clique, nunca bloqueado
+  const url = BASE + '&' + params.toString();
+  const newTab = window.open(url, '_blank');
+  if (!newTab) {
+    // Fallback se popup blocker estiver ativo: redireciona na mesma aba
+    window.location.href = url;
+    return;
+  }
 
-  setTimeout(() => {
-    document.getElementById('submitForm').style.display = 'none';
-    document.getElementById('successMsg').style.display = 'block';
-    document.getElementById('successMsg').scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, 600);
+  // Feedback visual
+  const btn = document.querySelector('.btn-submit');
+  btn.textContent = '✓ Formulário aberto!';
+  btn.classList.add('done');
+  btn.disabled = true;
+
+  document.getElementById('submitForm').style.display = 'none';
+  document.getElementById('successMsg').style.display = 'block';
+  document.getElementById('successMsg').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 // ── SMOOTH SCROLL ────────────────────────────────────────────────────
