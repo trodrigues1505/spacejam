@@ -89,6 +89,18 @@
   .btn-delete:hover { background:rgba(192,57,43,0.1); }
   .empty-list { font-family:'Crimson Pro',serif; font-size:0.95rem; color:rgba(245,200,66,0.3); font-style:italic; text-align:center; padding:2rem; }
 
+  .pending-item { border:1px solid rgba(245,200,66,0.2); padding:1.2rem; margin-bottom:0.8rem; display:grid; grid-template-columns:1fr auto; gap:1rem; align-items:start; }
+  .pending-item:hover { border-color:var(--gold); }
+  .pending-meta { display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.5rem; }
+  .pending-tag { font-family:'Special Elite',serif; font-size:0.72rem; color:rgba(245,200,66,0.5); background:rgba(245,200,66,0.05); padding:0.2rem 0.6rem; border:1px solid rgba(245,200,66,0.1); }
+  .pending-actions { display:flex; flex-direction:column; gap:0.4rem; }
+  .btn-approve { background:rgba(46,204,113,0.15); border:1px solid #2ecc71; color:#2ecc71; font-family:'Bebas Neue',display; font-size:0.75rem; letter-spacing:2px; padding:0.3rem 0.8rem; cursor:pointer; }
+  .btn-approve:hover { background:rgba(46,204,113,0.3); }
+  .btn-ignore { background:none; border:1px solid rgba(192,57,43,0.3); color:var(--red-light); font-family:'Bebas Neue',display; font-size:0.75rem; letter-spacing:2px; padding:0.3rem 0.8rem; cursor:pointer; }
+  .btn-ignore:hover { background:rgba(192,57,43,0.1); }
+  .btn-prefill { background:none; border:1px solid var(--border); color:var(--gold); font-family:'Bebas Neue',display; font-size:0.75rem; letter-spacing:2px; padding:0.3rem 0.8rem; cursor:pointer; }
+  .btn-prefill:hover { background:rgba(245,200,66,0.08); }
+
   .stats { display:flex; gap:1.5rem; margin-bottom:1.5rem; }
   .stat { text-align:center; }
   .stat .n { font-family:'Bebas Neue',display; font-size:2.5rem; color:var(--gold); line-height:1; }
@@ -178,8 +190,18 @@
         <div class="empty-list">Nenhum material publicado ainda.</div>
       </div>
     </div>
-
   </div>
+
+  <!-- FILA DE APROVAÇÃO -->
+  <div class="panel" style="grid-column:1/-1;margin-top:1rem;">
+    <h2>Fila de Envios <span id="pendingBadge" style="font-size:1rem;color:var(--red-light);"></span></h2>
+    <p style="font-family:'Crimson Pro',serif;font-size:0.9rem;color:var(--text);margin-bottom:1rem;">Envios recebidos pelo formulário. Clique em <strong style="color:var(--gold)">Preencher</strong> para carregar no formulário ao lado e publicar, ou <strong style="color:var(--red-light)">Ignorar</strong> para descartar.</p>
+    <button onclick="loadPending()" style="background:none;border:1px solid var(--border);color:var(--gold);font-family:'Bebas Neue',display;letter-spacing:3px;font-size:0.8rem;padding:0.4rem 1rem;cursor:pointer;margin-bottom:1rem;">↻ Atualizar lista</button>
+    <div id="pendingList">
+      <div class="empty-list">Clique em Atualizar para carregar os envios.</div>
+    </div>
+  </div>
+
 </div>
 
 <script type="module">
@@ -363,6 +385,127 @@
     try { return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); }
     catch { return {}; }
   }
+
+  // ── LER PLANILHA DO FORMS ────────────────────────────────────────────
+  const SHEET_ID = '1r3fymqOrfh21bSnepq4VtTRlKIZFQyrTHhAOugfKac8';
+  const SHEET_GID = '496611824';
+  let ignoredRows = JSON.parse(localStorage.getItem('sj_ignored') || '[]');
+
+  window.loadPending = async function() {
+    const el = document.getElementById('pendingList');
+    el.innerHTML = '<div class="empty-list">Carregando...</div>';
+
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${SHEET_GID}`;
+    try {
+      const res = await fetch(url);
+      const text = await res.text();
+      const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1]);
+      const rows = json.table.rows;
+
+      if (!rows || rows.length === 0) {
+        el.innerHTML = '<div class="empty-list">Nenhum envio recebido ainda.</div>';
+        document.getElementById('pendingBadge').textContent = '';
+        return;
+      }
+
+      // Colunas: 0=timestamp, 1=nome, 2=email, 3=planeta, 4=especie, 5=resumo, 6=link, 7=obs
+      const items = rows.map((row, i) => ({
+        idx: i,
+        ts:      row.c[0]?.v || '',
+        author:  row.c[1]?.v || '',
+        email:   row.c[2]?.v || '',
+        planet:  row.c[3]?.v || '',
+        species: row.c[4]?.v || '',
+        summary: row.c[5]?.v || '',
+        fileUrl: row.c[6]?.v || '',
+        obs:     row.c[7]?.v || '',
+      })).filter(item => !ignoredRows.includes(item.idx));
+
+      const pending = document.getElementById('pendingBadge');
+      pending.textContent = items.length > 0 ? `(${items.length})` : '';
+
+      if (items.length === 0) {
+        el.innerHTML = '<div class="empty-list">Nenhum envio pendente.</div>';
+        return;
+      }
+
+      el.innerHTML = items.map(item => `
+        <div class="pending-item" id="row_${item.idx}">
+          <div>
+            <div class="sub-planet">${item.planet || '—'}</div>
+            <div class="sub-species">${item.species || '—'}</div>
+            <div class="sub-author">por ${item.author} · ${item.email}</div>
+            <div class="pending-meta">
+              ${item.summary ? `<span class="pending-tag">📝 ${item.summary}</span>` : ''}
+              ${item.fileUrl ? `<a href="${item.fileUrl}" target="_blank" class="pending-tag" style="color:var(--gold);text-decoration:none;">📎 Ver arquivo</a>` : '<span class="pending-tag" style="color:var(--red-light);">⚠ Sem arquivo</span>'}
+              ${item.obs ? `<span class="pending-tag">💬 ${item.obs}</span>` : ''}
+            </div>
+          </div>
+          <div class="pending-actions">
+            <button class="btn-prefill" onclick="prefillForm(${item.idx})">✏ Preencher</button>
+            <button class="btn-approve" onclick="approveItem(${item.idx})">✓ Aprovar</button>
+            <button class="btn-ignore" onclick="ignoreItem(${item.idx})">✕ Ignorar</button>
+          </div>
+        </div>
+      `).join('');
+
+    } catch(e) {
+      el.innerHTML = `<div class="empty-list">Erro ao carregar: ${e.message}</div>`;
+    }
+  };
+
+  // Preenche o form de publicação com os dados do envio
+  window.prefillForm = function(idx) {
+    // Re-busca os dados do item pelo índice
+    const rows = document.querySelectorAll(`#row_${idx}`);
+    // Lê direto do DOM
+    const item = pendingCache[idx];
+    if (!item) return;
+    document.getElementById('fPlanet').value  = item.planet;
+    document.getElementById('fSpecies').value = item.species;
+    document.getElementById('fAuthor').value  = item.author;
+    document.getElementById('fFile').value    = item.fileUrl;
+    document.getElementById('fSummary').value = item.summary;
+    document.querySelector('.panel').scrollIntoView({ behavior:'smooth' });
+  };
+
+  window.approveItem = function(idx) {
+    ignoreItem(idx);
+    // Scroll para o form já preenchido
+    document.querySelector('.panel').scrollIntoView({ behavior:'smooth' });
+  };
+
+  window.ignoreItem = function(idx) {
+    ignoredRows.push(idx);
+    localStorage.setItem('sj_ignored', JSON.stringify(ignoredRows));
+    const el = document.getElementById(`row_${idx}`);
+    if (el) el.remove();
+    const remaining = document.querySelectorAll('.pending-item').length;
+    document.getElementById('pendingBadge').textContent = remaining > 0 ? `(${remaining})` : '';
+  };
+
+  // Cache para prefill
+  let pendingCache = {};
+  const _origLoad = window.loadPending;
+  window.loadPending = async function() {
+    await _origLoad();
+    // Rebuild cache após render
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${SHEET_GID}`;
+    try {
+      const res = await fetch(url);
+      const text = await res.text();
+      const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1]);
+      (json.table.rows || []).forEach((row, i) => {
+        pendingCache[i] = {
+          planet:  row.c[3]?.v || '',
+          species: row.c[4]?.v || '',
+          author:  row.c[1]?.v || '',
+          fileUrl: row.c[6]?.v || '',
+          summary: row.c[5]?.v || '',
+        };
+      });
+    } catch(e) {}
+  };
 </script>
 </body>
 </html>
