@@ -6,6 +6,86 @@
 <title>Space Jam — Planetas & Espécies</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Russo+One&family=Special+Elite&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAjdwDjAmIkrUuhvYK1zjeh4_poXpxqfy4",
+    authDomain: "space-jam-b46b0.firebaseapp.com",
+    projectId: "space-jam-b46b0",
+    storageBucket: "space-jam-b46b0.firebasestorage.app",
+    messagingSenderId: "897984577143",
+    appId: "1:897984577143:web:9cff9e84249d9f208c9072"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const col = collection(db, "supporters");
+
+  // Escuta em tempo real
+  onSnapshot(col, (snapshot) => {
+    const list = snapshot.docs.map(d => d.data());
+    document.getElementById('supportCount').textContent = list.length;
+    const row = document.getElementById('avatarsRow');
+    row.innerHTML = list.slice(-8).map(u =>
+      u.picture
+        ? `<img class="supporter-avatar" src="${u.picture}" title="${u.name}" onerror="this.style.display='none'">`
+        : `<div class="supporter-avatar" style="background:var(--red);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:0.9rem;color:var(--cream);">${u.name.charAt(0).toUpperCase()}</div>`
+    ).join('');
+  });
+
+  // Verifica se já apoiou (por email no Firestore)
+  async function checkSupported(email) {
+    const q = query(col, where("email", "==", email));
+    const snap = await getDocs(q);
+    return !snap.empty;
+  }
+
+  // Salva apoiador
+  async function saveSupporter(user) {
+    const already = await checkSupported(user.email);
+    if (already) {
+      showAlreadySupported();
+      return;
+    }
+    await addDoc(col, {
+      name: user.name,
+      email: user.email,
+      picture: user.picture || '',
+      ts: Date.now()
+    });
+    const btn = document.getElementById('btnSupport');
+    btn.classList.add('signed');
+    btn.textContent = '✓ Apoio registrado';
+    btn.disabled = true;
+  }
+
+  function showAlreadySupported() {
+    document.getElementById('btnSupport').style.display = 'none';
+    document.getElementById('supportedMsg').style.display = 'block';
+  }
+
+  // Google Identity callback — exposto globalmente
+  window.handleCredentialResponse = function(response) {
+    const payload = parseJwt(response.credential);
+    saveSupporter({ name: payload.name, email: payload.email, picture: payload.picture });
+  };
+
+  window.handleSupportClick = function() {
+    google.accounts.id.initialize({
+      client_id: 'SEU_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
+      callback: window.handleCredentialResponse,
+      auto_select: false,
+    });
+    google.accounts.id.prompt();
+  };
+
+  function parseJwt(token) {
+    try { return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); }
+    catch { return {}; }
+  }
+</script>
 <style>
   :root {
     --gold: #F5C842;
@@ -494,74 +574,8 @@
 </div>
 
 <script>
-// ── APOIADORES (localStorage como mock verificável) ──────────────────
-const STORAGE_KEY = 'spacejam_supporters';
-
-function getSupported() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
-}
-
-function saveSupporter(user) {
-  const list = getSupported();
-  if (!list.find(u => u.email === user.email)) {
-    list.push({ name: user.name, email: user.email, picture: user.picture, ts: Date.now() });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  }
-  renderSupporters();
-}
-
-function renderSupporters() {
-  const list = getSupported();
-  document.getElementById('supportCount').textContent = list.length;
-  const row = document.getElementById('avatarsRow');
-  row.innerHTML = list.slice(-8).map(u =>
-    `<img class="supporter-avatar" src="${u.picture || ''}" title="${u.name}" onerror="this.style.display='none'">`
-  ).join('');
-}
-
-function checkAlreadySupported(email) {
-  return getSupported().some(u => u.email === email);
-}
-
-// ── GOOGLE IDENTITY ──────────────────────────────────────────────────
-let googleUser = null;
-
-window.handleCredentialResponse = function(response) {
-  const payload = parseJwt(response.credential);
-  googleUser = { name: payload.name, email: payload.email, picture: payload.picture };
-
-  if (checkAlreadySupported(googleUser.email)) {
-    document.getElementById('btnSupport').style.display = 'none';
-    document.getElementById('supportedMsg').style.display = 'block';
-  } else {
-    saveSupporter(googleUser);
-    document.getElementById('btnSupport').classList.add('signed');
-    document.getElementById('btnSupport').textContent = '✓ Apoio registrado';
-    document.getElementById('btnSupport').disabled = true;
-  }
-}
-
-function handleSupportClick() {
-  google.accounts.id.initialize({
-    client_id: '312813213923-f8igii6bq06rea4tkhi35u5oes4its0p.apps.googleusercontent.com',
-    callback: handleCredentialResponse,
-    auto_select: false,
-  });
-  google.accounts.id.prompt();
-}
-
-function parseJwt(token) {
-  try {
-    return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
-  } catch { return {}; }
-}
-
-renderSupporters();
-
 // ── FORMULÁRIO ───────────────────────────────────────────────────────
 function handleSubmit(e) {
-  // Deixa o form submeter normalmente para o Google Forms (target=_blank)
-  // e mostra mensagem de sucesso após 800ms
   setTimeout(() => {
     document.getElementById('submitForm').style.display = 'none';
     document.getElementById('successMsg').style.display = 'block';
@@ -579,4 +593,4 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 });
 </script>
 </body>
-</html>
+</html>   
