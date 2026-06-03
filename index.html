@@ -719,55 +719,58 @@
   </div>
 
   <div class="form-wrap">
-    <form id="submitForm" onsubmit="handleSubmit(event)">
+    <form id="submitForm">
 
       <div class="form-grid-2">
         <div class="form-row">
           <label>Seu nome ou apelido <span class="req">*</span></label>
-          <input type="text" name="entry.142922766" placeholder="Ex: Comandante Arlak" required>
+          <input type="text" id="f_nome" placeholder="Ex: Comandante Arlak">
         </div>
         <div class="form-row">
           <label>Email <span class="req">*</span></label>
-          <input type="email" name="entry.1374293792" placeholder="seu@email.com" required>
+          <input type="email" id="f_email" placeholder="seu@email.com">
         </div>
       </div>
 
       <div class="form-row">
         <label>Nome do Planeta <span class="req">*</span></label>
-        <input type="text" name="entry.1190836357" placeholder="Ex: Vorath-7, o Mundo Esquecido" required>
+        <input type="text" id="f_planeta" placeholder="Ex: Vorath-7, o Mundo Esquecido">
       </div>
 
       <div class="form-row">
         <label>Nome da Espécie <span class="req">*</span></label>
-        <input type="text" name="entry.1876014314" placeholder="Ex: Krathari — os Tecedores de Névoa" required>
+        <input type="text" id="f_especie" placeholder="Ex: Krathari — os Tecedores de Névoa">
       </div>
 
       <div class="form-row">
         <label>Resumo em 1 linha</label>
-        <input type="text" name="entry.308873361" placeholder="Uma frase que capture a essência do seu planeta...">
+        <input type="text" id="f_resumo" placeholder="Uma frase que capture a essência do seu planeta...">
       </div>
 
       <div class="form-row">
         <label>Link do arquivo <span class="req">*</span></label>
-        <input type="url" name="entry.1115591710" placeholder="Google Drive, Dropbox, WeTransfer..." required>
-        <p style="font-family:'Crimson Pro',serif;font-size:0.8rem;color:rgba(245,200,66,0.35);margin-top:0.4rem;font-style:italic;">Suba seu .docx ou .pdf em qualquer serviço de nuvem e cole o link aqui. Certifique-se que está acessível por qualquer pessoa com o link.</p>
+        <input type="url" id="f_link" placeholder="Google Drive, Dropbox, WeTransfer...">
+        <p style="font-family:'Crimson Pro',serif;font-size:0.8rem;color:rgba(245,200,66,0.35);margin-top:0.4rem;font-style:italic;">Suba seu .docx ou .pdf em qualquer serviço de nuvem e cole o link aqui.</p>
       </div>
 
       <div class="form-row">
         <label>Observações (opcional)</label>
-        <textarea name="entry.615693776" placeholder="Notas de design, referências, créditos de arte, etc..."></textarea>
+        <textarea id="f_obs" placeholder="Notas de design, referências, créditos de arte, etc..."></textarea>
       </div>
 
       <div class="form-row check-row">
-        <input type="checkbox" id="agree">
-        <label for="agree">
+        <input type="checkbox" id="agree" style="width:20px;height:20px;flex-shrink:0;cursor:pointer;accent-color:#E74C3C;">
+        <label for="agree" style="font-family:'Crimson Pro',serif;font-size:0.9rem;color:var(--text-body);letter-spacing:0;font-variant:normal;line-height:1.5;cursor:pointer;">
           Confirmo que a ideia central, os conceitos e as escolhas criativas são minhas — o conteúdo pode ter sido produzido com o auxílio de ferramentas de IA — e que o material é coerente com o universo Space Dragon e respeita o formato obrigatório de 4 colunas em paisagem.
         </label>
       </div>
 
-      <button type="submit" class="btn-submit">★ &nbsp; Transmitir para a Galáxia &nbsp; ★</button>
+      <div id="formError" style="display:none;font-family:'Crimson Pro',serif;font-size:0.9rem;color:var(--red-light);margin-top:0.5rem;padding:0.5rem;border:1px solid var(--red-light);"></div>
+
+      <button type="button" id="btnEnviar" class="btn-submit" onclick="abrirForms()">★ &nbsp; Transmitir para a Galáxia &nbsp; ★</button>
       <p class="form-note">As inscrições abrem em 01/07/2026. Os envios são revisados pelos organizadores antes da publicação.</p>
     </form>
+
     <div class="success-msg" id="successMsg">
       <h3>★ Formulário Aberto ★</h3>
       <p>Uma nova aba foi aberta com o Google Forms já preenchido.<br>Confirme os dados e clique em <strong style="color:var(--gold)">Enviar</strong> lá para registrar seu material.</p>
@@ -821,60 +824,48 @@
 
 <script>
 // ── FORMULÁRIO ───────────────────────────────────────────────────────
-function handleSubmit(e) {
-  e.preventDefault();
+function abrirForms() {
+  const nome    = document.getElementById('f_nome').value.trim();
+  const email   = document.getElementById('f_email').value.trim();
+  const planeta = document.getElementById('f_planeta').value.trim();
+  const especie = document.getElementById('f_especie').value.trim();
+  const link    = document.getElementById('f_link').value.trim();
+  const resumo  = document.getElementById('f_resumo').value.trim();
+  const obs     = document.getElementById('f_obs').value.trim();
+  const agree   = document.getElementById('agree').checked;
+  const errEl   = document.getElementById('formError');
 
-  // Validação checkbox
-  const agree = document.getElementById('agree');
-  if (!agree.checked) {
-    agree.style.outline = '2px solid var(--red-light)';
-    agree.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    setTimeout(() => { agree.style.outline = ''; }, 3000);
+  // Validações
+  if (!nome || !email || !planeta || !especie || !link) {
+    errEl.textContent = '⚠ Preencha todos os campos obrigatórios (marcados com *).';
+    errEl.style.display = 'block';
     return;
   }
-
-  // Validação campos obrigatórios
-  const required = ['entry.142922766','entry.1374293792','entry.1190836357','entry.1876014314','entry.1115591710'];
-  for (const name of required) {
-    const el = document.querySelector('[name="' + name + '"]');
-    if (!el || !el.value.trim()) {
-      el && el.focus();
-      el && (el.style.borderColor = 'var(--red-light)');
-      setTimeout(() => { el && (el.style.borderColor = ''); }, 3000);
-      return;
-    }
+  if (!agree) {
+    errEl.textContent = '⚠ Você precisa marcar a caixa de confirmação antes de enviar.';
+    errEl.style.display = 'block';
+    document.getElementById('agree').scrollIntoView({ behavior:'smooth', block:'center' });
+    return;
   }
+  errEl.style.display = 'none';
 
   const BASE = 'https://docs.google.com/forms/d/e/1FAIpQLSeraH2bc0rlfXR5NDdlX4_9y0_cuxVC8B7MGxh_rgbaVKPttA/viewform?usp=pp_url';
-  const params = new URLSearchParams({
-    'entry.142922766':  document.querySelector('[name="entry.142922766"]').value,
-    'entry.1374293792': document.querySelector('[name="entry.1374293792"]').value,
-    'entry.1190836357': document.querySelector('[name="entry.1190836357"]').value,
-    'entry.1876014314': document.querySelector('[name="entry.1876014314"]').value,
-    'entry.308873361':  document.querySelector('[name="entry.308873361"]').value || '',
-    'entry.1115591710': document.querySelector('[name="entry.1115591710"]').value,
-    'entry.615693776':  document.querySelector('[name="entry.615693776"]').value || '',
-  });
+  const url = BASE
+    + '&entry.142922766='  + encodeURIComponent(nome)
+    + '&entry.1374293792=' + encodeURIComponent(email)
+    + '&entry.1190836357=' + encodeURIComponent(planeta)
+    + '&entry.1876014314=' + encodeURIComponent(especie)
+    + '&entry.308873361='  + encodeURIComponent(resumo)
+    + '&entry.1115591710=' + encodeURIComponent(link)
+    + '&entry.615693776='  + encodeURIComponent(obs);
 
-  // Abre direto — dentro do handler do clique, nunca bloqueado
-  const url = BASE + '&' + params.toString();
-  const newTab = window.open(url, '_blank');
-  if (!newTab) {
-    // Fallback se popup blocker estiver ativo: redireciona na mesma aba
-    window.location.href = url;
-    return;
-  }
-
-  // Feedback visual
-  const btn = document.querySelector('.btn-submit');
-  btn.textContent = '✓ Formulário aberto!';
-  btn.classList.add('done');
-  btn.disabled = true;
+  window.open(url, '_blank');
 
   document.getElementById('submitForm').style.display = 'none';
   document.getElementById('successMsg').style.display = 'block';
-  document.getElementById('successMsg').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  document.getElementById('successMsg').scrollIntoView({ behavior:'smooth', block:'center' });
 }
+
 
 // ── SMOOTH SCROLL ────────────────────────────────────────────────────
 document.querySelectorAll('a[href^="#"]').forEach(a => {
