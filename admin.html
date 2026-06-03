@@ -718,7 +718,7 @@
   </div>
 
   <div class="form-wrap">
-    <form id="submitForm" action="https://docs.google.com/forms/d/e/1FAIpQLSeraH2bc0rlfXR5NDdlX4_9y0_cuxVC8B7MGxh_rgbaVKPttA/formResponse" method="POST" target="_blank" onsubmit="handleSubmit(event)">
+    <form id="submitForm" onsubmit="handleSubmit(event)">
 
       <div class="form-grid-2">
         <div class="form-row">
@@ -820,17 +820,32 @@
 <script>
 // ── FORMULÁRIO ───────────────────────────────────────────────────────
 function handleSubmit(e) {
+  e.preventDefault();
+
   const btn = document.querySelector('.btn-submit');
-  btn.textContent = '⏳  Enviando...';
+  btn.textContent = '⏳  Abrindo formulário...';
   btn.classList.add('loading');
   btn.disabled = true;
+
+  const BASE = 'https://docs.google.com/forms/d/e/1FAIpQLSeraH2bc0rlfXR5NDdlX4_9y0_cuxVC8B7MGxh_rgbaVKPttA/viewform?usp=pp_url';
+
+  const params = new URLSearchParams({
+    'entry.142922766': document.querySelector('[name="entry.142922766"]').value,
+    'entry.1374293792': document.querySelector('[name="entry.1374293792"]').value,
+    'entry.1190836357': document.querySelector('[name="entry.1190836357"]').value,
+    'entry.1876014314': document.querySelector('[name="entry.1876014314"]').value,
+    'entry.308873361':  document.querySelector('[name="entry.308873361"]').value,
+    'entry.1115591710': document.querySelector('[name="entry.1115591710"]').value,
+    'entry.615693776':  document.querySelector('[name="entry.615693776"]').value,
+  });
+
+  window.open(BASE + '&' + params.toString(), '_blank');
+
   setTimeout(() => {
     document.getElementById('submitForm').style.display = 'none';
     document.getElementById('successMsg').style.display = 'block';
     document.getElementById('successMsg').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    const btn = document.querySelector('.btn-submit');
-    if (btn) { btn.classList.remove('loading'); btn.classList.add('done'); btn.textContent = '✓ Enviado!'; }
-  }, 800);
+  }, 600);
 }
 
 // ── SMOOTH SCROLL ────────────────────────────────────────────────────
