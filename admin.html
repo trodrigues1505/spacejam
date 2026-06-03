@@ -3,190 +3,849 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Space Jam — Admin</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Special+Elite&family=Crimson+Pro:wght@400;600&display=swap" rel="stylesheet">
+<title>Space Jam — Planetas & Espécies</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Russo+One&family=Special+Elite&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAjdwDjAmIkrUuhvYK1zjeh4_poXpxqfy4",
+    authDomain: "space-jam-b46b0.firebaseapp.com",
+    projectId: "space-jam-b46b0",
+    storageBucket: "space-jam-b46b0.firebasestorage.app",
+    messagingSenderId: "897984577143",
+    appId: "1:897984577143:web:9cff9e84249d9f208c9072"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const col = collection(db, "supporters");
+
+  // Escuta em tempo real
+  onSnapshot(col, (snapshot) => {
+    const list = snapshot.docs.map(d => d.data());
+    document.getElementById('supportCount').textContent = list.length;
+    const row = document.getElementById('avatarsRow');
+    row.innerHTML = list.slice(-8).map(u =>
+      u.picture
+        ? `<img class="supporter-avatar" src="${u.picture}" title="${u.name}" onerror="this.style.display='none'">`
+        : `<div class="supporter-avatar" style="background:var(--red);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:0.9rem;color:var(--cream);">${u.name.charAt(0).toUpperCase()}</div>`
+    ).join('');
+  });
+
+  // Verifica se já apoiou (por email no Firestore)
+  async function checkSupported(email) {
+    const q = query(col, where("email", "==", email));
+    const snap = await getDocs(q);
+    return !snap.empty;
+  }
+
+  // Salva apoiador
+  async function saveSupporter(user) {
+    const already = await checkSupported(user.email);
+    if (already) {
+      showAlreadySupported();
+      return;
+    }
+    await addDoc(col, {
+      name: user.name,
+      email: user.email,
+      picture: user.picture || '',
+      ts: Date.now()
+    });
+    const btn = document.getElementById('btnSupport');
+    btn.classList.add('signed');
+    btn.textContent = '✓ Apoio registrado';
+    btn.disabled = true;
+  }
+
+  function showAlreadySupported() {
+    document.getElementById('btnSupport').style.display = 'none';
+    document.getElementById('supportedMsg').style.display = 'block';
+  }
+
+  // Google Identity callback — exposto globalmente
+  window.handleCredentialResponse = function(response) {
+    const payload = parseJwt(response.credential);
+    saveSupporter({ name: payload.name, email: payload.email, picture: payload.picture });
+  };
+
+  window.handleSupportClick = function() {
+    google.accounts.id.initialize({
+      client_id: '312813213923-f8igii6bq06rea4tkhi35u5oes4its0p.apps.googleusercontent.com',
+      callback: window.handleCredentialResponse,
+      auto_select: false,
+    });
+    google.accounts.id.prompt();
+  };
+
+  function parseJwt(token) {
+    try { return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); }
+    catch { return {}; }
+  }
+</script>
 <style>
   :root {
-    --gold: #F5C842; --red: #C0392B; --red-light: #E74C3C;
-    --cream: #F2E8CC; --bg: #0A0D1A; --bg-mid: #111527;
-    --border: rgba(245,200,66,0.3); --text: #D4C9A8;
+    --gold: #F5C842;
+    --gold-dark: #C49A1A;
+    --red: #C0392B;
+    --red-light: #E74C3C;
+    --cream: #F2E8CC;
+    --bg-deep: #0A0D1A;
+    --bg-mid: #111527;
+    --bg-panel: #0D1020;
+    --border-gold: rgba(245,200,66,0.4);
+    --text-body: #D4C9A8;
   }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:var(--bg); color:var(--cream); font-family:'Special Elite',serif; min-height:100vh; }
-
-  /* LOGIN */
-  #loginScreen {
-    min-height: 100vh; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; gap:2rem;
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg-deep);
+    color: var(--cream);
+    font-family: 'Special Elite', serif;
+    overflow-x: hidden;
+    cursor: crosshair;
   }
-  #loginScreen h1 { font-family:'Bebas Neue',display; font-size:3rem; color:var(--gold); letter-spacing:4px; }
-  #loginScreen p { font-family:'Crimson Pro',serif; color:var(--text); font-size:1rem; }
-
-  /* ADMIN */
-  #adminScreen { display:none; }
-
-  header {
-    background:rgba(10,13,26,0.95); border-bottom:2px solid var(--border);
-    padding:1rem 2rem; display:flex; align-items:center; justify-content:space-between;
-    position:sticky; top:0; z-index:10;
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.8) 0%, transparent 100%),
+      radial-gradient(1px 1px at 25% 40%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(2px 2px at 40% 10%, rgba(255,255,255,0.9) 0%, transparent 100%),
+      radial-gradient(1px 1px at 55% 70%, rgba(255,255,255,0.7) 0%, transparent 100%),
+      radial-gradient(1px 1px at 70% 30%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(2px 2px at 80% 55%, rgba(255,255,255,0.8) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 20%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 15% 80%, rgba(255,255,255,0.7) 0%, transparent 100%),
+      radial-gradient(1px 1px at 60% 90%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(2px 2px at 35% 60%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 75% 85%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 5% 50%, rgba(255,255,255,0.8) 0%, transparent 100%),
+      radial-gradient(1px 1px at 95% 70%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 50% 45%, rgba(255,255,255,0.3) 0%, transparent 100%);
+    pointer-events: none; z-index: 0;
   }
-  header h1 { font-family:'Bebas Neue',display; font-size:1.5rem; color:var(--gold); letter-spacing:3px; }
-  .admin-user { font-family:'Special Elite',serif; font-size:0.8rem; color:var(--text); display:flex; align-items:center; gap:0.8rem; }
-  .admin-user img { width:32px; height:32px; border-radius:50%; border:2px solid var(--border); }
-  .btn-logout { background:none; border:1px solid var(--border); color:var(--text); font-family:'Bebas Neue',display; letter-spacing:2px; font-size:0.75rem; padding:0.3rem 0.8rem; cursor:pointer; }
-  .btn-logout:hover { border-color:var(--red); color:var(--red-light); }
-
-  .admin-body { max-width:1200px; margin:0 auto; padding:2rem; display:grid; grid-template-columns:1fr 1fr; gap:2rem; }
-
-  @media(max-width:768px) { .admin-body { grid-template-columns:1fr; } }
-
-  .panel { border:1px solid var(--border); padding:1.5rem; background:rgba(10,13,26,0.5); }
-  .panel h2 { font-family:'Bebas Neue',display; font-size:1.3rem; color:var(--gold); letter-spacing:3px; margin-bottom:1.2rem; padding-bottom:0.8rem; border-bottom:1px solid var(--border); }
-
-  label { display:block; font-family:'Bebas Neue',display; font-size:0.75rem; letter-spacing:4px; color:var(--gold); margin-bottom:0.4rem; margin-top:1rem; }
-  label:first-of-type { margin-top:0; }
-  input, textarea {
-    width:100%; background:rgba(245,200,66,0.04); border:1px solid rgba(245,200,66,0.2);
-    color:var(--cream); font-family:'Crimson Pro',serif; font-size:0.95rem;
-    padding:0.6rem 0.8rem; outline:none; transition:border-color 0.2s;
+  body::after {
+    content: ''; position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 1; opacity: 0.4;
   }
-  input:focus, textarea:focus { border-color:var(--gold); }
-  input::placeholder, textarea::placeholder { color:rgba(245,200,66,0.2); font-style:italic; }
-  textarea { min-height:80px; resize:vertical; }
+  .wrapper { position: relative; z-index: 2; }
 
-  .btn-publish {
-    width:100%; margin-top:1.2rem; background:var(--red); border:none;
-    color:var(--cream); font-family:'Bebas Neue',display; font-size:1.1rem;
-    letter-spacing:4px; padding:0.8rem; cursor:pointer;
-    clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);
-    transition:background 0.2s;
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(10,13,26,0.92);
+    border-bottom: 2px solid var(--border-gold);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 2rem; height: 52px;
+    backdrop-filter: blur(8px);
   }
-  .btn-publish:hover { background:#a93226; }
-  .btn-publish:disabled { opacity:0.4; cursor:default; }
+  nav .nav-logo { font-family: 'Bebas Neue', display; font-size: 1.5rem; color: var(--gold); letter-spacing: 3px; text-shadow: 0 0 20px rgba(245,200,66,0.3); }
+  nav ul { display: flex; gap: 2rem; list-style: none; }
+  nav ul a { color: var(--cream); text-decoration: none; font-family: 'Bebas Neue', display; font-size: 1rem; letter-spacing: 2px; transition: color 0.2s; opacity: 0.8; }
+  nav ul a:hover { color: var(--gold); opacity: 1; }
 
-  .msg { font-family:'Crimson Pro',serif; font-size:0.85rem; text-align:center; margin-top:0.8rem; min-height:1.2rem; }
-  .msg.ok { color:#2ecc71; }
-  .msg.err { color:var(--red-light); }
-
-  /* LISTA */
-  .submissions-list { display:flex; flex-direction:column; gap:0.8rem; max-height:70vh; overflow-y:auto; }
-
-  .sub-item {
-    border:1px solid rgba(245,200,66,0.15); padding:1rem;
-    display:flex; justify-content:space-between; align-items:flex-start; gap:1rem;
-    transition:border-color 0.2s;
+  /* HERO */
+  .hero {
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 6rem 2rem 4rem; position: relative; overflow: hidden;
   }
-  .sub-item:hover { border-color:var(--gold); }
-  .sub-info { flex:1; }
-  .sub-planet { font-family:'Bebas Neue',display; font-size:1.2rem; color:var(--gold); letter-spacing:2px; }
-  .sub-species { font-family:'Special Elite',serif; font-size:0.75rem; color:var(--red-light); letter-spacing:2px; margin-bottom:0.3rem; }
-  .sub-author { font-family:'Crimson Pro',serif; font-size:0.8rem; color:rgba(245,200,66,0.4); }
-  .sub-actions { display:flex; flex-direction:column; gap:0.4rem; flex-shrink:0; }
-  .btn-edit { background:none; border:1px solid var(--border); color:var(--gold); font-family:'Bebas Neue',display; font-size:0.7rem; letter-spacing:2px; padding:0.25rem 0.6rem; cursor:pointer; }
-  .btn-edit:hover { background:rgba(245,200,66,0.1); }
-  .btn-delete { background:none; border:1px solid rgba(192,57,43,0.3); color:var(--red-light); font-family:'Bebas Neue',display; font-size:0.7rem; letter-spacing:2px; padding:0.25rem 0.6rem; cursor:pointer; }
-  .btn-delete:hover { background:rgba(192,57,43,0.1); }
-  .empty-list { font-family:'Crimson Pro',serif; font-size:0.95rem; color:rgba(245,200,66,0.3); font-style:italic; text-align:center; padding:2rem; }
+  .hero-glow { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(192,57,43,0.12) 0%, transparent 70%); top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none; }
+  .hero-badge { display: inline-block; background: var(--red); color: var(--cream); font-family: 'Bebas Neue', display; font-size: 0.9rem; letter-spacing: 4px; padding: 0.3rem 1.2rem; margin-bottom: 1.5rem; clip-path: polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%); animation: fadeDown 0.8s ease both; }
+  .hero h1 { font-family: 'Bebas Neue', display; font-size: clamp(5rem,14vw,11rem); line-height: 0.85; color: var(--gold); text-shadow: 4px 4px 0 var(--red), 8px 8px 0 rgba(192,57,43,0.4), 0 0 80px rgba(245,200,66,0.15); letter-spacing: 4px; animation: fadeDown 0.8s 0.1s ease both; }
+  .hero h1 span { display: block; color: var(--cream); font-size: 0.32em; letter-spacing: 12px; text-shadow: none; margin-bottom: 0.2em; }
+  .hero-subtitle { font-family: 'Russo One', display; font-size: clamp(1.2rem,3vw,2rem); color: var(--cream); letter-spacing: 6px; margin-top: 1rem; background: var(--red); padding: 0.4rem 2rem; clip-path: polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%); animation: fadeDown 0.8s 0.2s ease both; }
+  .hero-dates { display: flex; gap: 3rem; margin-top: 3rem; animation: fadeDown 0.8s 0.3s ease both; }
+  .hero-date-box { border: 2px solid var(--border-gold); padding: 1rem 2rem; text-align: center; position: relative; }
+  .hero-date-box::before { content: ''; position: absolute; inset: 3px; border: 1px solid rgba(245,200,66,0.15); pointer-events: none; }
+  .hero-date-box .label { font-family: 'Bebas Neue', display; font-size: 0.8rem; letter-spacing: 4px; color: var(--gold); opacity: 0.7; display: block; margin-bottom: 0.3rem; }
+  .hero-date-box .date { font-family: 'Bebas Neue', display; font-size: 2.2rem; color: var(--red-light); letter-spacing: 2px; line-height: 1; }
+  .hero-scroll { position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%); color: var(--gold); opacity: 0.5; font-family: 'Bebas Neue', display; letter-spacing: 4px; font-size: 0.75rem; animation: bounce 2s infinite; }
 
-  .stats { display:flex; gap:1.5rem; margin-bottom:1.5rem; }
-  .stat { text-align:center; }
-  .stat .n { font-family:'Bebas Neue',display; font-size:2.5rem; color:var(--gold); line-height:1; }
-  .stat .l { font-family:'Special Elite',serif; font-size:0.7rem; color:rgba(245,200,66,0.4); letter-spacing:2px; }
+  /* APOIADORES */
+  .supporters-bar {
+    background: rgba(245,200,66,0.04);
+    border-top: 1px solid var(--border-gold);
+    border-bottom: 1px solid var(--border-gold);
+    padding: 1.5rem 2rem;
+    display: flex; align-items: center; justify-content: center; gap: 2rem;
+    flex-wrap: wrap;
+  }
+  .supporters-count { text-align: center; }
+  .supporters-count .num { font-family: 'Bebas Neue', display; font-size: 3rem; color: var(--gold); line-height: 1; display: block; }
+  .supporters-count .lbl { font-family: 'Special Elite', serif; font-size: 0.75rem; letter-spacing: 3px; color: rgba(245,200,66,0.5); }
+  .supporters-divider { width: 1px; height: 60px; background: var(--border-gold); }
+  .supporters-msg { font-family: 'Crimson Pro', serif; font-size: 1rem; color: var(--text-body); max-width: 400px; line-height: 1.6; font-style: italic; }
+  .btn-support {
+    background: transparent; border: 2px solid var(--gold); color: var(--gold);
+    font-family: 'Bebas Neue', display; font-size: 0.85rem; letter-spacing: 4px;
+    padding: 0.6rem 1.5rem; cursor: pointer; transition: all 0.2s;
+    clip-path: polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
+  }
+  .btn-support:hover { background: var(--gold); color: var(--bg-deep); }
+  .btn-support.signed { border-color: var(--red-light); color: var(--red-light); cursor: default; }
+  .supporter-avatar { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--gold); object-fit: cover; }
+  .avatars-row { display: flex; gap: 4px; flex-wrap: wrap; max-width: 200px; }
+  #googleSignInDiv { display: none; }
 
-  .form-cols { display:grid; grid-template-columns:1fr 1fr; gap:0.8rem; }
-  @media(max-width:480px) { .form-cols { grid-template-columns:1fr; } }
+  /* DIVIDER */
+  .divider { width: 100%; height: 3px; background: linear-gradient(90deg,transparent,var(--red),var(--gold),var(--red),transparent); }
+
+  /* SECTIONS */
+  section { padding: 5rem 2rem; max-width: 1100px; margin: 0 auto; }
+  .section-label { font-family: 'Bebas Neue', display; font-size: 0.8rem; letter-spacing: 6px; color: var(--red-light); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.8rem; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border-gold); }
+  .section-title { font-family: 'Bebas Neue', display; font-size: clamp(2.5rem,6vw,4.5rem); color: var(--gold); line-height: 1; text-shadow: 3px 3px 0 rgba(192,57,43,0.4); margin-bottom: 2.5rem; letter-spacing: 2px; }
+
+  /* JAMS */
+  .jams-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(260px,1fr)); gap: 1.5rem; }
+  .jam-card { border: 2px solid var(--border-gold); padding: 1.8rem; position: relative; transition: transform 0.2s, border-color 0.2s; overflow: hidden; }
+  .jam-card::before { content: ''; position: absolute; inset: 4px; border: 1px solid rgba(245,200,66,0.1); pointer-events: none; }
+  .jam-card.active { border-color: var(--gold); background: rgba(245,200,66,0.04); animation: pulse-border 3s infinite; }
+  .jam-card.active::after { content: 'ABERTA'; position: absolute; top: 1rem; right: -1.5rem; background: var(--red); color: var(--cream); font-family: 'Bebas Neue', display; font-size: 0.75rem; letter-spacing: 3px; padding: 0.2rem 2.5rem; transform: rotate(45deg); }
+  .jam-card.locked { opacity: 0.45; border-color: rgba(245,200,66,0.15); }
+  .jam-card:not(.locked):hover { transform: translateY(-4px); border-color: var(--gold); }
+  .jam-num { font-family: 'Bebas Neue', display; font-size: 3.5rem; color: rgba(245,200,66,0.12); line-height: 1; position: absolute; top: 0.8rem; right: 1rem; pointer-events: none; }
+  .jam-edition { font-family: 'Bebas Neue', display; font-size: 0.75rem; letter-spacing: 5px; color: var(--gold); opacity: 0.6; margin-bottom: 0.4rem; }
+  .jam-theme { font-family: 'Russo One', display; font-size: 1.3rem; color: var(--cream); margin-bottom: 0.8rem; line-height: 1.2; }
+  .jam-period { font-family: 'Special Elite', serif; font-size: 0.8rem; color: var(--red-light); letter-spacing: 1px; }
+  .jam-lock-msg { font-family: 'Special Elite', serif; font-size: 0.75rem; color: rgba(245,200,66,0.3); margin-top: 0.5rem; font-style: italic; }
+
+  /* MANIFESTO */
+  #manifesto { max-width: 800px; margin: 0 auto; padding: 5rem 2rem; }
+  .manifesto-body { border-left: 4px solid var(--red); padding-left: 2rem; margin-top: 1rem; }
+  .manifesto-body p { font-family: 'Crimson Pro', serif; font-size: 1.25rem; line-height: 1.85; color: var(--text-body); margin-bottom: 1.5rem; }
+  .manifesto-body p strong { color: var(--gold); font-weight: 600; }
+  .manifesto-body p em { color: var(--red-light); font-style: italic; }
+  .manifesto-pull { font-family: 'Bebas Neue', display; font-size: 1.8rem; color: var(--gold); text-align: center; margin: 2.5rem 0; letter-spacing: 2px; line-height: 1.2; padding: 1.5rem; border-top: 1px solid var(--border-gold); border-bottom: 1px solid var(--border-gold); }
+  .manifesto-sig { font-family: 'Special Elite', serif; font-size: 0.85rem; color: rgba(245,200,66,0.5); letter-spacing: 3px; text-align: right; margin-top: 2rem; }
+
+  /* REGRAS */
+  #regras { max-width: 1100px; }
+  .rules-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 1.2rem; margin-top: 0.5rem; }
+  .rule-col { border: 1px solid var(--border-gold); padding: 1.5rem; position: relative; }
+  .rule-col-num { font-family: 'Bebas Neue', display; font-size: 3rem; color: rgba(245,200,66,0.08); position: absolute; top: 0.5rem; right: 0.8rem; line-height: 1; }
+  .rule-col h3 { font-family: 'Russo One', display; font-size: 0.85rem; color: var(--gold); letter-spacing: 3px; margin-bottom: 1rem; text-transform: uppercase; }
+  .rule-col ul { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+  .rule-col ul li { font-family: 'Crimson Pro', serif; font-size: 0.95rem; color: var(--text-body); padding-left: 1rem; position: relative; line-height: 1.45; }
+  .rule-col ul li::before { content: '▸'; position: absolute; left: 0; color: var(--red-light); font-size: 0.7rem; top: 3px; }
+
+  /* ENVIO */
+  #envio { max-width: 780px; margin: 0 auto; padding: 5rem 2rem; }
+  .form-wrap { border: 2px solid var(--border-gold); padding: 2.5rem; position: relative; background: rgba(10,13,26,0.6); }
+  .form-wrap::before { content: ''; position: absolute; inset: 5px; border: 1px solid rgba(245,200,66,0.08); pointer-events: none; }
+  .form-row { margin-bottom: 1.5rem; }
+  .form-row label { display: block; font-family: 'Bebas Neue', display; font-size: 0.85rem; letter-spacing: 4px; color: var(--gold); margin-bottom: 0.5rem; }
+  .form-row label .req { color: var(--red-light); margin-left: 3px; }
+  .form-row input, .form-row textarea, .form-row select { width: 100%; background: rgba(245,200,66,0.04); border: 1px solid rgba(245,200,66,0.25); color: var(--cream); font-family: 'Special Elite', serif; font-size: 0.95rem; padding: 0.7rem 1rem; outline: none; transition: border-color 0.2s; -webkit-appearance: none; }
+  .form-row input:focus, .form-row textarea:focus { border-color: var(--gold); }
+  .form-row input::placeholder, .form-row textarea::placeholder { color: rgba(245,200,66,0.2); font-style: italic; }
+  .form-row textarea { min-height: 90px; resize: vertical; }
+  .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+  .btn-submit { width: 100%; background: var(--red); border: none; color: var(--cream); font-family: 'Bebas Neue', display; font-size: 1.3rem; letter-spacing: 6px; padding: 1rem; cursor: pointer; clip-path: polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%); transition: background 0.2s, transform 0.1s; margin-top: 0.5rem; }
+  .btn-submit:hover { background: #a93226; }
+  .btn-submit:active { transform: scale(0.98); }
+  .btn-submit.loading { opacity: 0.6; cursor: wait; }
+  .btn-submit.done { background: #27ae60; }
+  .form-note { font-family: 'Crimson Pro', serif; font-size: 0.85rem; color: rgba(245,200,66,0.35); text-align: center; margin-top: 1rem; font-style: italic; }
+  .check-row { display: flex; align-items: flex-start; gap: 0.8rem; }
+  .check-row input[type="checkbox"] { width: auto; margin-top: 4px; accent-color: var(--red-light); flex-shrink: 0; }
+  .check-row label { font-family: 'Crimson Pro', serif; font-size: 0.9rem; color: var(--text-body); letter-spacing: 0; font-variant: normal; line-height: 1.5; }
+  .success-msg { display: none; text-align: center; padding: 3rem; border: 2px solid var(--gold); background: rgba(245,200,66,0.04); }
+  .success-msg h3 { font-family: 'Bebas Neue', display; font-size: 2.5rem; color: var(--gold); letter-spacing: 4px; margin-bottom: 0.5rem; }
+  .success-msg p { font-family: 'Crimson Pro', serif; font-size: 1.1rem; color: var(--text-body); }
+
+  footer { border-top: 2px solid var(--border-gold); padding: 2rem; text-align: center; background: rgba(10,13,26,0.8); }
+  footer p { font-family: 'Special Elite', serif; font-size: 0.78rem; color: rgba(245,200,66,0.3); letter-spacing: 2px; }
+  footer strong { color: rgba(245,200,66,0.6); }
+
+  .star { display: inline-block; color: var(--gold); font-size: 1.2rem; animation: twinkle 2s infinite alternate; }
+  .star:nth-child(2) { animation-delay: 0.5s; }
+  .star:nth-child(3) { animation-delay: 1s; }
+  .sep { max-width: 1100px; margin: 0 auto; padding: 0 2rem; display: flex; align-items: center; gap: 1rem; color: rgba(245,200,66,0.2); font-family: 'Bebas Neue', display; letter-spacing: 4px; font-size: 0.7rem; }
+  .sep::before, .sep::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg,transparent,var(--border-gold),transparent); }
+
+  @keyframes fadeDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes bounce { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(8px); } }
+  @keyframes twinkle { from { opacity: 0.3; } to { opacity: 1; } }
+  @keyframes pulse-border { 0%,100% { box-shadow: 0 0 0 0 rgba(245,200,66,0); } 50% { box-shadow: 0 0 0 4px rgba(245,200,66,0.1); } }
+
+  @media (max-width: 600px) {
+    .hero-dates { flex-direction: column; gap: 1rem; }
+    .form-grid-2 { grid-template-columns: 1fr; }
+    nav ul { gap: 1rem; }
+    nav ul a { font-size: 0.8rem; }
+    .supporters-divider { display: none; }
+  }
+
+  /* GALERIA */
+  #galeria { max-width: 1100px; margin: 0 auto; padding: 5rem 2rem; }
+
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .gallery-card {
+    border: 1px solid var(--border-gold);
+    background: rgba(10,13,26,0.7);
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .gallery-card:hover { transform: translateY(-4px); border-color: var(--gold); }
+
+  .gallery-card-header {
+    background: rgba(245,200,66,0.05);
+    border-bottom: 1px solid var(--border-gold);
+    padding: 1.2rem 1.5rem;
+  }
+
+  .gallery-card-planet {
+    font-family: 'Bebas Neue', display;
+    font-size: 1.5rem;
+    color: var(--gold);
+    letter-spacing: 2px;
+    line-height: 1;
+    margin-bottom: 0.2rem;
+  }
+
+  .gallery-card-species {
+    font-family: 'Special Elite', serif;
+    font-size: 0.8rem;
+    color: var(--red-light);
+    letter-spacing: 2px;
+  }
+
+  .gallery-card-body { padding: 1.2rem 1.5rem; }
+
+  .gallery-card-summary {
+    font-family: 'Crimson Pro', serif;
+    font-size: 1rem;
+    color: var(--text-body);
+    line-height: 1.6;
+    font-style: italic;
+    margin-bottom: 1rem;
+  }
+
+  .gallery-card-author {
+    font-family: 'Special Elite', serif;
+    font-size: 0.75rem;
+    color: rgba(245,200,66,0.4);
+    letter-spacing: 2px;
+  }
+
+  .gallery-card-footer {
+    padding: 0.8rem 1.5rem;
+    border-top: 1px solid rgba(245,200,66,0.1);
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .btn-ver {
+    font-family: 'Bebas Neue', display;
+    font-size: 0.8rem;
+    letter-spacing: 3px;
+    color: var(--gold);
+    background: transparent;
+    border: 1px solid var(--border-gold);
+    padding: 0.3rem 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-ver:hover { background: var(--gold); color: var(--bg-deep); }
+
+  .gallery-empty {
+    text-align: center;
+    padding: 4rem;
+    border: 1px dashed rgba(245,200,66,0.15);
+    grid-column: 1/-1;
+  }
+
+  .gallery-empty p {
+    font-family: 'Crimson Pro', serif;
+    font-size: 1.1rem;
+    color: rgba(245,200,66,0.3);
+    font-style: italic;
+  }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 200;
+    overflow-y: auto;
+    padding: 2rem;
+  }
+
+  .modal-overlay.open { display: flex; align-items: flex-start; justify-content: center; }
+
+  .modal-box {
+    background: var(--bg-mid);
+    border: 2px solid var(--border-gold);
+    width: 100%;
+    max-width: 900px;
+    margin: auto;
+    position: relative;
+  }
+
+  .modal-header {
+    padding: 2rem 2rem 1rem;
+    border-bottom: 1px solid var(--border-gold);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .modal-planet {
+    font-family: 'Bebas Neue', display;
+    font-size: 2.5rem;
+    color: var(--gold);
+    letter-spacing: 3px;
+    line-height: 1;
+  }
+
+  .modal-species {
+    font-family: 'Special Elite', serif;
+    font-size: 0.85rem;
+    color: var(--red-light);
+    letter-spacing: 3px;
+    margin-top: 0.3rem;
+  }
+
+  .modal-close {
+    background: none;
+    border: 1px solid var(--border-gold);
+    color: var(--gold);
+    font-family: 'Bebas Neue', display;
+    font-size: 1rem;
+    letter-spacing: 2px;
+    padding: 0.3rem 0.8rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-left: 1rem;
+  }
+
+  .modal-close:hover { background: var(--red); border-color: var(--red); color: var(--cream); }
+
+  .modal-body { padding: 1.5rem 2rem; }
+
+  .modal-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .modal-col h4 {
+    font-family: 'Russo One', display;
+    font-size: 0.75rem;
+    color: var(--gold);
+    letter-spacing: 4px;
+    margin-bottom: 0.6rem;
+    text-transform: uppercase;
+  }
+
+  .modal-col p {
+    font-family: 'Crimson Pro', serif;
+    font-size: 0.95rem;
+    color: var(--text-body);
+    line-height: 1.7;
+    white-space: pre-wrap;
+  }
+
+  .modal-pdf {
+    width: 100%;
+    height: 500px;
+    border: 1px solid var(--border-gold);
+    background: #000;
+  }
+
+  .modal-author {
+    font-family: 'Special Elite', serif;
+    font-size: 0.75rem;
+    color: rgba(245,200,66,0.35);
+    letter-spacing: 2px;
+    padding: 1rem 2rem;
+    border-top: 1px solid rgba(245,200,66,0.1);
+  }
+
+  .submissions-count {
+    font-family: 'Bebas Neue', display;
+    font-size: 1rem;
+    color: rgba(245,200,66,0.4);
+    letter-spacing: 4px;
+    margin-bottom: 2rem;
+  }
+
+  .submissions-count span { color: var(--gold); font-size: 1.8rem; vertical-align: middle; margin-right: 0.3rem; }
+
 </style>
 </head>
 <body>
+<div class="wrapper">
 
-<!-- LOGIN -->
-<div id="loginScreen">
-  <h1>★ Space Jam Admin ★</h1>
-  <p>Acesso restrito ao organizador</p>
-  <div id="googleBtn"></div>
+<nav>
+  <div class="nav-logo">SPACE JAM</div>
+  <ul>
+    <li><a href="#jams">Edições</a></li>
+    <li><a href="#manifesto">Manifesto</a></li>
+    <li><a href="#regras">Regras</a></li>
+    <li><a href="#envio">Enviar</a></li>
+  </ul>
+</nav>
+
+<div class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-badge">★ System: Space Dragon ★</div>
+  <h1><span>Space</span>JAM</h1>
+  <div class="hero-subtitle">Planetas &amp; Espécies</div>
+  <div class="hero-dates">
+    <div class="hero-date-box">
+      <span class="label">Início dos envios</span>
+      <div class="date">01/07</div>
+    </div>
+    <div class="hero-date-box">
+      <span class="label">Encerramento</span>
+      <div class="date">18/07</div>
+    </div>
+  </div>
+  <div class="hero-scroll">▼ &nbsp; Role para explorar &nbsp; ▼</div>
 </div>
 
-<!-- ADMIN -->
-<div id="adminScreen">
-  <header>
-    <h1>Space Jam — Painel Admin</h1>
-    <div class="admin-user">
-      <img id="adminAvatar" src="" alt="">
-      <span id="adminName"></span>
-      <button class="btn-logout" onclick="logout()">Sair</button>
-    </div>
-  </header>
-
-  <div class="admin-body">
-
-    <!-- FORM PUBLICAR -->
-    <div class="panel">
-      <h2 id="formTitle">Publicar Material</h2>
-
-      <input type="hidden" id="editId">
-
-      <div class="form-cols">
-        <div>
-          <label>Nome do Planeta *</label>
-          <input type="text" id="fPlanet" placeholder="Ex: Vorath-7">
-        </div>
-        <div>
-          <label>Nome da Espécie *</label>
-          <input type="text" id="fSpecies" placeholder="Ex: Krathari">
-        </div>
-      </div>
-
-      <div class="form-cols">
-        <div>
-          <label>Autor *</label>
-          <input type="text" id="fAuthor" placeholder="Nome do participante">
-        </div>
-        <div>
-          <label>Link do Arquivo (Drive)</label>
-          <input type="url" id="fFile" placeholder="https://drive.google.com/...">
-        </div>
-      </div>
-
-      <label>Resumo (1 linha)</label>
-      <input type="text" id="fSummary" placeholder="Frase que captura a essência do planeta...">
-
-      <label>① Conceito do Planeta</label>
-      <textarea id="fCol1" placeholder="Nome, conceito central, introdução narrativa, história, conflitos..."></textarea>
-
-      <label>② Estrutura Planetária</label>
-      <textarea id="fCol2" placeholder="Superfície, atmosfera, fauna, flora, sociedade, gravidade, nível tecnológico..."></textarea>
-
-      <label>③ Espécie Predominante</label>
-      <textarea id="fCol3" placeholder="Aparência, comportamento, cultura, estatísticas..."></textarea>
-
-      <label>④ Raça Jogável</label>
-      <textarea id="fCol4" placeholder="Modificadores, habilidades, restrições, orientações..."></textarea>
-
-      <button class="btn-publish" id="btnPublish" onclick="publishSubmission()">★ Publicar no Site</button>
-      <div class="msg" id="formMsg"></div>
-    </div>
-
-    <!-- LISTA -->
-    <div class="panel">
-      <h2>Materiais Publicados</h2>
-      <div class="stats">
-        <div class="stat"><div class="n" id="statCount">0</div><div class="l">Publicados</div></div>
-        <div class="stat"><div class="n" id="statSupporters">—</div><div class="l">Apoiadores</div></div>
-      </div>
-      <div class="submissions-list" id="submissionsList">
-        <div class="empty-list">Nenhum material publicado ainda.</div>
-      </div>
-    </div>
-
+<!-- APOIADORES -->
+<div class="supporters-bar">
+  <div class="supporters-count">
+    <span class="num" id="supportCount">0</span>
+    <span class="lbl">Apoiadores</span>
+  </div>
+  <div class="supporters-divider"></div>
+  <div class="supporters-msg">
+    Criadores que acreditam que a liberdade de expressão e a diversidade de ferramentas fortalecem a comunidade.
+  </div>
+  <div class="supporters-divider"></div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:0.8rem;">
+    <div class="avatars-row" id="avatarsRow"></div>
+    <button class="btn-support" id="btnSupport" onclick="handleSupportClick()">
+      ★ Apoiar com Google
+    </button>
+    <div id="googleSignInDiv"></div>
+    <div id="supportedMsg" style="display:none;font-family:'Special Elite',serif;font-size:0.75rem;color:var(--red-light);letter-spacing:2px;">✓ Você já apoiou</div>
   </div>
 </div>
 
+<div class="divider"></div>
+
+<section id="jams">
+  <div class="section-label">Cronologia Galáctica</div>
+  <div class="section-title">Edições da Jam</div>
+  <div class="jams-grid">
+    <div class="jam-card active">
+      <div class="jam-num">1</div>
+      <div class="jam-edition">SPACE JAM · Edição 1</div>
+      <div class="jam-theme">Planetas &amp; Espécies</div>
+      <div class="jam-period">01/07 — 18/07/2026</div>
+    </div>
+    <div class="jam-card locked">
+      <div class="jam-num">2</div>
+      <div class="jam-edition">SPACE JAM · Edição 2</div>
+      <div class="jam-theme">???</div>
+      <div class="jam-lock-msg">Transmissão classificada. Aguarde.</div>
+    </div>
+    <div class="jam-card locked">
+      <div class="jam-num">3</div>
+      <div class="jam-edition">SPACE JAM · Edição 3</div>
+      <div class="jam-theme">???</div>
+      <div class="jam-lock-msg">Transmissão classificada. Aguarde.</div>
+    </div>
+    <div class="jam-card locked">
+      <div class="jam-num">4</div>
+      <div class="jam-edition">SPACE JAM · Edição 4</div>
+      <div class="jam-theme">???</div>
+      <div class="jam-lock-msg">Transmissão classificada. Aguarde.</div>
+    </div>
+  </div>
+</section>
+
+<div class="sep">✦ &nbsp; Transmissão Especial &nbsp; ✦</div>
+
+<div style="max-width:800px;margin:3rem auto;padding:0 2rem;">
+  <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border:2px solid var(--border-gold);box-shadow:0 0 40px rgba(245,200,66,0.05);">
+    <iframe
+      src="https://www.youtube.com/embed/CUlyVbTPTR4"
+      title="Space Dragon — Transmissão Especial"
+      frameborder="0"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen
+      style="position:absolute;top:0;left:0;width:100%;height:100%;">
+    </iframe>
+  </div>
+</div>
+
+<section id="manifesto">
+  <div class="section-label">Posição Oficial</div>
+  <div class="section-title">Manifesto pela<br>Criação Livre</div>
+  <div class="manifesto-body">
+
+    <p>Desde que o primeiro contador de histórias apontou para o céu e inventou constelações, a humanidade usa as ferramentas que tem. Penas de ave, prensas de Gutenberg, máquinas de escrever, processadores de texto — cada geração herdou uma ferramenta nova e a acusação de que ela destruiria a arte. Cada geração ignorou a acusação e continuou criando.</p>
+
+    <div class="manifesto-pull">"O pensamento nasce no narrador.<br>A ferramenta apenas lhe dá forma."</div>
+
+    <p>A inteligência artificial generativa é a ferramenta do nosso tempo. Como qualquer ferramenta, ela <strong>amplifica o que já existe em quem a usa</strong>. Nas mãos de quem não tem nada a dizer, produz ruído. Nas mãos de um criador, pode ser uma lanterna no escuro — algo que ilumina uma ideia que estava lá, esperando para ser articulada.</p>
+
+    <p>Reconhecemos e respeitamos quem prefere criar sem ela. A escolha de trabalhar com as próprias mãos, sem assistência algorítmica, é legítima e tem seu próprio valor estético. O artesanato tem lugar eterno no universo criativo.</p>
+
+    <p>O que recusamos é uma outra coisa: a <em>confusão entre preferência pessoal e norma universal</em>. Existe uma tendência crescente — em comunidades criativas como em outros espaços — de transformar o gosto de uma parte em lei para todos. De enunciar proibições não por razões técnicas, mas por razões de identidade: <strong>"criadores de verdade não usam isso"</strong>. Esse raciocínio é mais antigo do que parece, e seu histórico não é glorioso.</p>
+
+    <p>Comunidades pequenas têm uma vulnerabilidade específica: quando um grupo ativo e vocal toma posição, <strong>a ausência dos demais é lida como concordância</strong>. Decisões que deveriam ser coletivas tornam-se fatos consumados. Quem discorda — por timidez, por não querer conflito, por chegar tarde à conversa — descobre que o espaço de deliberação já fechou. Isso não é consenso. É inércia capturada.</p>
+
+    <div class="manifesto-pull">"Liberdade criativa não se divide<br>em autorizada e não autorizada."</div>
+
+    <p>Há também o peso do <em>conformismo criativo</em> — a pressão difusa que não proíbe diretamente, mas constrange. Que não diz "você está errado" mas insinua "criadores sérios não fazem assim". Que transforma uma escolha de ferramenta em declaração de caráter. Essa pressão é silenciosa, eficaz e, no longo prazo, empobrece qualquer comunidade que a deixe operar sem nome — independente de onde ela venha no espectro de opiniões.</p>
+
+    <p>Nomeamos: o problema não é a ferramenta. <strong>O problema é quando o controle sobre as ferramentas dos outros vira moeda de pertencimento.</strong> Quando participar de uma comunidade exige abdicar de recursos que você usa livremente no resto da sua vida criativa.</p>
+
+    <p>O Space Dragon nasceu de pulp fiction, de Buck Rogers, de Flash Gordon — gêneros que eram considerados lixo popular pelos guardiões da alta cultura. A tradição do sistema é transgredir tradições. Seria uma ironia considerável defender esse legado enquanto erguemos nossas próprias cercas.</p>
+
+    <p>Esta jam existe para expandir o universo do Space Dragon. <strong>O critério de julgamento é um só: o material funciona em mesa?</strong> Inspira? É jogável? Tem coerência com o sistema? Tudo que passa nesse filtro é bem-vindo — independente do caminho que o criador percorreu para chegar lá.</p>
+
+    <div class="manifesto-sig">— Space Jam · Edição Independente · 2026</div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section id="regras">
+  <div class="section-label">Estrutura Obrigatória</div>
+  <div class="section-title">Regras da JAM</div>
+  <div class="rules-grid">
+    <div class="rule-col">
+      <div class="rule-col-num">①</div>
+      <h3>Conceito do Planeta</h3>
+      <ul>
+        <li>Nome do planeta</li>
+        <li>Conceito central</li>
+        <li>Introdução narrativa</li>
+        <li>História breve</li>
+        <li>Conflitos, mistérios, ganchos de aventura</li>
+      </ul>
+    </div>
+    <div class="rule-col">
+      <div class="rule-col-num">②</div>
+      <h3>Estrutura Planetária</h3>
+      <ul>
+        <li>Superfície &amp; Atmosfera</li>
+        <li>Fauna &amp; Flora</li>
+        <li>Sociedade</li>
+        <li>Gravidade</li>
+        <li>Nível tecnológico</li>
+      </ul>
+    </div>
+    <div class="rule-col">
+      <div class="rule-col-num">③</div>
+      <h3>Espécie (Criatura)</h3>
+      <ul>
+        <li>Aparência &amp; Comportamento</li>
+        <li>Cultura &amp; papel ecológico</li>
+        <li>Estatísticas completas no formato SD</li>
+      </ul>
+    </div>
+    <div class="rule-col">
+      <div class="rule-col-num">④</div>
+      <h3>Raça Jogável</h3>
+      <ul>
+        <li>Modificadores raciais</li>
+        <li>Habilidades especiais</li>
+        <li>Capacidades biológicas</li>
+        <li>Restrições</li>
+        <li>Orientações para criação de personagem</li>
+      </ul>
+    </div>
+  </div>
+
+  <div style="margin-top:2rem; border:1px solid rgba(245,200,66,0.2); padding:1.5rem; background:rgba(245,200,66,0.02);">
+    <div class="section-label" style="margin-bottom:1rem;">Autoria &amp; Ferramentas</div>
+    <ul style="list-style:none;display:flex;flex-direction:column;gap:0.7rem;">
+      <li style="font-family:'Crimson Pro',serif;font-size:1rem;color:var(--text-body);padding-left:1.2rem;position:relative;line-height:1.5;">
+        <span style="position:absolute;left:0;color:var(--red-light);">▸</span>
+        O que importa é que a <strong style="color:var(--gold);">ideia seja sua</strong> — o conceito do planeta, a cultura da espécie, os ganchos de aventura, as escolhas mecânicas. A centelha criativa tem que partir de você.
+      </li>
+      <li style="font-family:'Crimson Pro',serif;font-size:1rem;color:var(--text-body);padding-left:1.2rem;position:relative;line-height:1.5;">
+        <span style="position:absolute;left:0;color:var(--red-light);">▸</span>
+        Qualquer ferramenta é bem-vinda: escrita à mão, processador de texto, diagramação, arte digital ou IA generativa. <em style="color:var(--cream);">A IA pode redigir trechos, gerar arte ou organizar o layout</em> — desde que você seja o diretor criativo, não o espectador.
+      </li>
+      <li style="font-family:'Crimson Pro',serif;font-size:1rem;color:var(--text-body);padding-left:1.2rem;position:relative;line-height:1.5;">
+        <span style="position:absolute;left:0;color:var(--red-light);">▸</span>
+        O material será julgado pelo que entrega em mesa: qualidade, coerência com Space Dragon e jogabilidade. O caminho percorrido para chegar lá é seu.
+      </li>
+    </ul>
+  </div>
+
+  <div style="margin-top:1.2rem;border:1px solid var(--border-gold);padding:1.5rem;">
+    <div class="section-label" style="margin-bottom:0.8rem;">Formato obrigatório</div>
+    <div style="display:flex;flex-wrap:wrap;gap:1rem;">
+      <div style="font-family:'Crimson Pro',serif;font-size:0.95rem;color:var(--text-body);padding:0.5rem 1rem;border:1px solid rgba(245,200,66,0.15);">📄 A4 Paisagem</div>
+      <div style="font-family:'Crimson Pro',serif;font-size:0.95rem;color:var(--text-body);padding:0.5rem 1rem;border:1px solid rgba(245,200,66,0.15);">🗂 4 Colunas</div>
+      <div style="font-family:'Crimson Pro',serif;font-size:0.95rem;color:var(--text-body);padding:0.5rem 1rem;border:1px solid rgba(245,200,66,0.15);">🔤 Arial 10pt</div>
+      <div style="font-family:'Crimson Pro',serif;font-size:0.95rem;color:var(--text-body);padding:0.5rem 1rem;border:1px solid rgba(245,200,66,0.15);">📏 Margem estreita</div>
+      <div style="font-family:'Crimson Pro',serif;font-size:0.95rem;color:var(--text-body);padding:0.5rem 1rem;border:1px solid rgba(245,200,66,0.15);">📁 .docx ou .pdf</div>
+    </div>
+  </div>
+</section>
+
+<div class="sep">✦ &nbsp; Envio de Material &nbsp; ✦</div>
+
+<section id="envio">
+  <div class="section-label">Portal de Transmissão</div>
+  <div class="section-title">Enviar Material</div>
+
+  <div style="background:rgba(192,57,43,0.08);border:1px solid rgba(192,57,43,0.3);padding:1.2rem 1.5rem;margin-bottom:2rem;">
+    <p style="font-family:'Crimson Pro',serif;font-size:0.95rem;color:var(--text-body);line-height:1.6;">
+      📎 <strong style="color:var(--gold);">Envio de arquivo:</strong> O formulário abaixo vai te redirecionar para o Google Forms, onde você poderá anexar seu .docx ou .pdf diretamente. Seus dados ficam registrados de forma segura.
+    </p>
+  </div>
+
+  <div class="form-wrap">
+    <form id="submitForm" action="https://docs.google.com/forms/d/e/1FAIpQLSeraH2bc0rlfXR5NDdlX4_9y0_cuxVC8B7MGxh_rgbaVKPttA/formResponse" method="POST" target="_blank" onsubmit="handleSubmit(event)">
+
+      <div class="form-grid-2">
+        <div class="form-row">
+          <label>Seu nome ou apelido <span class="req">*</span></label>
+          <input type="text" name="entry.142922766" placeholder="Ex: Comandante Arlak" required>
+        </div>
+        <div class="form-row">
+          <label>Email <span class="req">*</span></label>
+          <input type="email" name="entry.1374293792" placeholder="seu@email.com" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>Nome do Planeta <span class="req">*</span></label>
+        <input type="text" name="entry.1190836357" placeholder="Ex: Vorath-7, o Mundo Esquecido" required>
+      </div>
+
+      <div class="form-row">
+        <label>Nome da Espécie <span class="req">*</span></label>
+        <input type="text" name="entry.1876014314" placeholder="Ex: Krathari — os Tecedores de Névoa" required>
+      </div>
+
+      <div class="form-row">
+        <label>Resumo em 1 linha</label>
+        <input type="text" name="entry.308873361" placeholder="Uma frase que capture a essência do seu planeta...">
+      </div>
+
+      <div class="form-row">
+        <label>Link do arquivo <span class="req">*</span></label>
+        <input type="url" name="entry.1115591710" placeholder="Google Drive, Dropbox, WeTransfer..." required>
+        <p style="font-family:'Crimson Pro',serif;font-size:0.8rem;color:rgba(245,200,66,0.35);margin-top:0.4rem;font-style:italic;">Suba seu .docx ou .pdf em qualquer serviço de nuvem e cole o link aqui. Certifique-se que está acessível por qualquer pessoa com o link.</p>
+      </div>
+
+      <div class="form-row">
+        <label>Observações (opcional)</label>
+        <textarea name="entry.615693776" placeholder="Notas de design, referências, créditos de arte, etc..."></textarea>
+      </div>
+
+      <div class="form-row check-row">
+        <input type="checkbox" id="agree" required>
+        <label for="agree">
+          Confirmo que a ideia central, os conceitos e as escolhas criativas são minhas — o conteúdo pode ter sido produzido com o auxílio de ferramentas de IA — e que o material é coerente com o universo Space Dragon e respeita o formato obrigatório de 4 colunas em paisagem.
+        </label>
+      </div>
+
+      <button type="submit" class="btn-submit">★ &nbsp; Transmitir para a Galáxia &nbsp; ★</button>
+      <p class="form-note">As inscrições abrem em 01/07/2026. Os envios são revisados pelos organizadores antes da publicação.</p>
+    </form>
+    <div class="success-msg" id="successMsg">
+      <h3>★ Transmissão Enviada ★</h3>
+      <p>Seu material foi registrado com sucesso.<br>Um explorador entrará em contato em breve.</p>
+    </div>
+  </div>
+</section>
+
+
+<div class="divider"></div>
+
+<section id="galeria">
+  <div class="section-label">Materiais Aprovados</div>
+  <div class="section-title">Galáxia em<br>Expansão</div>
+  <div class="submissions-count" id="submissionsCount"></div>
+  <div class="gallery-grid" id="galleryGrid">
+    <div class="gallery-empty">
+      <p>Nenhum material publicado ainda.<br>Os envios abrem em 01/07/2026.</p>
+    </div>
+  </div>
+</section>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal-box" id="modalBox">
+    <div class="modal-header">
+      <div>
+        <div class="modal-planet" id="modalPlanet"></div>
+        <div class="modal-species" id="modalSpecies"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕ Fechar</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-cols" id="modalCols"></div>
+      <iframe class="modal-pdf" id="modalPdf" src="" frameborder="0" allowfullscreen></iframe>
+    </div>
+    <div class="modal-author" id="modalAuthor"></div>
+  </div>
+</div>
+
+<footer>
+  <p>
+    <span class="star">✦</span>
+    <strong>Space Jam</strong> — Edição Independente · 2026 · Sistema <strong>Space Dragon</strong> por Igor Moreno
+    <span class="star">✦</span><span class="star">✦</span>
+  </p>
+  <p style="margin-top:0.5rem;">Criado por quem acredita que liberdade criativa não tem prazo de validade</p>
+</footer>
+
+</div>
+
+<script>
+// ── FORMULÁRIO ───────────────────────────────────────────────────────
+function handleSubmit(e) {
+  const btn = document.querySelector('.btn-submit');
+  btn.textContent = '⏳  Enviando...';
+  btn.classList.add('loading');
+  btn.disabled = true;
+  setTimeout(() => {
+    document.getElementById('submitForm').style.display = 'none';
+    document.getElementById('successMsg').style.display = 'block';
+    document.getElementById('successMsg').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const btn = document.querySelector('.btn-submit');
+    if (btn) { btn.classList.remove('loading'); btn.classList.add('done'); btn.textContent = '✓ Enviado!'; }
+  }, 800);
+}
+
+// ── SMOOTH SCROLL ────────────────────────────────────────────────────
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const t = document.querySelector(a.getAttribute('href'));
+    if (t) window.scrollTo({ top: t.getBoundingClientRect().top + scrollY - 60, behavior: 'smooth' });
+  });
+});
+</script>
+
 <script type="module">
   import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-  const ADMIN_EMAIL = 't.rodrigues1505@gmail.com';
+  import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAjdwDjAmIkrUuhvYK1zjeh4_poXpxqfy4",
@@ -199,170 +858,104 @@
 
   const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
   const db = getFirestore(app);
+
+  // Escuta coleção de submissions aprovadas
   const subCol = collection(db, "submissions");
-  const supCol = collection(db, "supporters");
+  const q = query(subCol, orderBy("ts", "desc"));
 
-  let currentUser = null;
-
-  // ── GOOGLE LOGIN ─────────────────────────────────────────────────────
-  window.handleCredentialResponse = function(response) {
-    const payload = parseJwt(response.credential);
-    if (payload.email !== ADMIN_EMAIL) {
-      alert('Acesso negado. Este painel é restrito ao organizador.');
-      return;
-    }
-    currentUser = payload;
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('adminScreen').style.display = 'block';
-    document.getElementById('adminName').textContent = payload.name;
-    document.getElementById('adminAvatar').src = payload.picture;
-    loadData();
-  };
-
-  window.logout = function() {
-    currentUser = null;
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('adminScreen').style.display = 'none';
-  };
-
-  google.accounts.id.initialize({
-    client_id: '312813213923-f8igii6bq06rea4tkhi35u5oes4its0p.apps.googleusercontent.com',
-    callback: window.handleCredentialResponse,
-  });
-  google.accounts.id.renderButton(document.getElementById('googleBtn'), {
-    theme: 'filled_black', size: 'large', text: 'signin_with',
+  onSnapshot(q, (snapshot) => {
+    const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderGallery(items);
   });
 
-  // ── LOAD DATA ────────────────────────────────────────────────────────
-  function loadData() {
-    const q = query(subCol, orderBy("ts", "desc"));
-    onSnapshot(q, (snap) => {
-      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      document.getElementById('statCount').textContent = items.length;
-      renderList(items);
-    });
+  function renderGallery(items) {
+    const grid = document.getElementById('galleryGrid');
+    const countEl = document.getElementById('submissionsCount');
 
-    onSnapshot(supCol, (snap) => {
-      document.getElementById('statSupporters').textContent = snap.size;
-    });
-  }
-
-  function renderList(items) {
-    const el = document.getElementById('submissionsList');
     if (items.length === 0) {
-      el.innerHTML = '<div class="empty-list">Nenhum material publicado ainda.</div>';
+      grid.innerHTML = '<div class="gallery-empty"><p>Nenhum material publicado ainda.<br>Os envios abrem em 01/07/2026.</p></div>';
+      countEl.innerHTML = '';
       return;
     }
-    el.innerHTML = items.map(item => `
-      <div class="sub-item">
-        <div class="sub-info">
-          <div class="sub-planet">${item.planet}</div>
-          <div class="sub-species">${item.species}</div>
-          <div class="sub-author">por ${item.author}</div>
+
+    countEl.innerHTML = `<span>${items.length}</span> material${items.length > 1 ? 'is' : ''} publicado${items.length > 1 ? 's' : ''}`;
+
+    grid.innerHTML = items.map(item => `
+      <div class="gallery-card" onclick="openModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">
+        <div class="gallery-card-header">
+          <div class="gallery-card-planet">${item.planet}</div>
+          <div class="gallery-card-species">${item.species}</div>
         </div>
-        <div class="sub-actions">
-          <button class="btn-edit" onclick="editItem('${item.id}')">Editar</button>
-          <button class="btn-delete" onclick="deleteItem('${item.id}', '${item.planet}')">Remover</button>
+        <div class="gallery-card-body">
+          <div class="gallery-card-summary">${item.summary || 'Sem descrição.'}</div>
+          <div class="gallery-card-author">por ${item.author}</div>
+        </div>
+        <div class="gallery-card-footer">
+          <button class="btn-ver">Ver Material ▸</button>
         </div>
       </div>
     `).join('');
   }
 
-  // ── PUBLISH ──────────────────────────────────────────────────────────
-  window.publishSubmission = async function() {
-    const planet  = document.getElementById('fPlanet').value.trim();
-    const species = document.getElementById('fSpecies').value.trim();
-    const author  = document.getElementById('fAuthor').value.trim();
+  // Expõe openModal globalmente
+  window.openModal = function(item) {
+    document.getElementById('modalPlanet').textContent = item.planet;
+    document.getElementById('modalSpecies').textContent = item.species;
+    document.getElementById('modalAuthor').textContent = 'Criado por ' + item.author;
 
-    if (!planet || !species || !author) {
-      setMsg('Planeta, espécie e autor são obrigatórios.', 'err');
-      return;
+    // Colunas de texto
+    const cols = [
+      { title: '① Conceito do Planeta', key: 'col1' },
+      { title: '② Estrutura Planetária', key: 'col2' },
+      { title: '③ Espécie Predominante', key: 'col3' },
+      { title: '④ Raça Jogável', key: 'col4' },
+    ];
+
+    const hasCols = cols.some(c => item[c.key]);
+    const colsEl = document.getElementById('modalCols');
+
+    if (hasCols) {
+      colsEl.style.display = 'grid';
+      colsEl.innerHTML = cols.map(c => `
+        <div class="modal-col">
+          <h4>${c.title}</h4>
+          <p>${item[c.key] || '—'}</p>
+        </div>
+      `).join('');
+    } else {
+      colsEl.style.display = 'none';
     }
 
-    const data = {
-      planet, species, author,
-      fileUrl:  document.getElementById('fFile').value.trim(),
-      summary:  document.getElementById('fSummary').value.trim(),
-      col1:     document.getElementById('fCol1').value.trim(),
-      col2:     document.getElementById('fCol2').value.trim(),
-      col3:     document.getElementById('fCol3').value.trim(),
-      col4:     document.getElementById('fCol4').value.trim(),
-      ts:       Date.now(),
-    };
-
-    const btn = document.getElementById('btnPublish');
-    btn.disabled = true;
-
-    try {
-      const editId = document.getElementById('editId').value;
-      if (editId) {
-        await updateDoc(doc(db, "submissions", editId), data);
-        setMsg('Material atualizado com sucesso!', 'ok');
-      } else {
-        await addDoc(subCol, data);
-        setMsg('Material publicado com sucesso!', 'ok');
+    // PDF iframe — converte link Drive para embed
+    const pdfEl = document.getElementById('modalPdf');
+    if (item.fileUrl) {
+      let embedUrl = item.fileUrl;
+      // Converte Google Drive share link para embed
+      const driveMatch = item.fileUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (driveMatch) {
+        embedUrl = `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
       }
-      clearForm();
-    } catch(e) {
-      setMsg('Erro: ' + e.message, 'err');
+      pdfEl.src = embedUrl;
+      pdfEl.style.display = 'block';
+    } else {
+      pdfEl.style.display = 'none';
     }
 
-    btn.disabled = false;
+    document.getElementById('modalOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
   };
 
-  // ── EDIT ─────────────────────────────────────────────────────────────
-  window.editItem = function(id) {
-    // Busca o item da lista renderizada via onSnapshot — pega do Firestore
-    import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({ getDoc, doc: fsDoc }) => {
-      getDoc(fsDoc(db, "submissions", id)).then(snap => {
-        if (!snap.exists()) return;
-        const d = snap.data();
-        document.getElementById('editId').value = id;
-        document.getElementById('fPlanet').value  = d.planet  || '';
-        document.getElementById('fSpecies').value = d.species || '';
-        document.getElementById('fAuthor').value  = d.author  || '';
-        document.getElementById('fFile').value    = d.fileUrl || '';
-        document.getElementById('fSummary').value = d.summary || '';
-        document.getElementById('fCol1').value    = d.col1    || '';
-        document.getElementById('fCol2').value    = d.col2    || '';
-        document.getElementById('fCol3').value    = d.col3    || '';
-        document.getElementById('fCol4').value    = d.col4    || '';
-        document.getElementById('formTitle').textContent = 'Editar Material';
-        document.getElementById('btnPublish').textContent = '★ Salvar Alterações';
-        document.querySelector('.panel').scrollIntoView({ behavior: 'smooth' });
-      });
-    });
+  window.closeModal = function() {
+    document.getElementById('modalOverlay').classList.remove('open');
+    document.getElementById('modalPdf').src = '';
+    document.body.style.overflow = '';
   };
 
-  // ── DELETE ───────────────────────────────────────────────────────────
-  window.deleteItem = async function(id, planet) {
-    if (!confirm(`Remover "${planet}" do site?`)) return;
-    try {
-      await deleteDoc(doc(db, "submissions", id));
-    } catch(e) {
-      alert('Erro ao remover: ' + e.message);
-    }
+  window.closeModalOutside = function(e) {
+    if (e.target === document.getElementById('modalOverlay')) window.closeModal();
   };
 
-  // ── HELPERS ──────────────────────────────────────────────────────────
-  function clearForm() {
-    ['fPlanet','fSpecies','fAuthor','fFile','fSummary','fCol1','fCol2','fCol3','fCol4','editId']
-      .forEach(id => document.getElementById(id).value = '');
-    document.getElementById('formTitle').textContent = 'Publicar Material';
-    document.getElementById('btnPublish').textContent = '★ Publicar no Site';
-  }
-
-  function setMsg(txt, type) {
-    const el = document.getElementById('formMsg');
-    el.textContent = txt;
-    el.className = 'msg ' + type;
-    setTimeout(() => { el.textContent = ''; el.className = 'msg'; }, 4000);
-  }
-
-  function parseJwt(token) {
-    try { return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); }
-    catch { return {}; }
-  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') window.closeModal(); });
 </script>
 </body>
 </html>
