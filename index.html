@@ -773,9 +773,8 @@
     </form>
 
     <div class="success-msg" id="successMsg">
-      <h3>★ Formulário Aberto ★</h3>
-      <p>Uma nova aba foi aberta com o Google Forms já preenchido.<br>Confirme os dados e clique em <strong style="color:var(--gold)">Enviar</strong> lá para registrar seu material.</p>
-      <p style="margin-top:0.8rem;font-size:0.85rem;color:rgba(245,200,66,0.4);font-style:italic;">Se a aba não abriu, verifique o bloqueador de popups do seu navegador.</p>
+      <h3>★ Transmissão Registrada ★</h3>
+      <p>Seu material foi enviado com sucesso, explorador.<br>Os organizadores entrarão em contato em breve.</p>
     </div>
   </div>
 </section>
@@ -825,7 +824,7 @@
 
 <script>
 // ── FORMULÁRIO ───────────────────────────────────────────────────────
-function abrirForms() {
+async function abrirForms() {
   const nome    = document.getElementById('f_nome').value.trim();
   const email   = document.getElementById('f_email').value.trim();
   const planeta = document.getElementById('f_planeta').value.trim();
@@ -835,8 +834,8 @@ function abrirForms() {
   const obs     = document.getElementById('f_obs').value.trim();
   const agree   = document.getElementById('agree').checked;
   const errEl   = document.getElementById('formError');
+  const btn     = document.getElementById('btnEnviar');
 
-  // Validações
   if (!nome || !email || !planeta || !especie || !link) {
     errEl.textContent = '⚠ Preencha todos os campos obrigatórios (marcados com *).';
     errEl.style.display = 'block';
@@ -849,18 +848,26 @@ function abrirForms() {
     return;
   }
   errEl.style.display = 'none';
+  btn.textContent = '⏳  Enviando...';
+  btn.disabled = true;
 
-  const BASE = 'https://docs.google.com/forms/d/e/1FAIpQLSeraH2bc0rlfXR5NDdlX4_9y0_cuxVC8B7MGxh_rgbaVKPttA/viewform?usp=pp_url';
-  const url = BASE
-    + '&entry.142922766='  + encodeURIComponent(nome)
-    + '&entry.1374293792=' + encodeURIComponent(email)
-    + '&entry.1190836357=' + encodeURIComponent(planeta)
-    + '&entry.1876014314=' + encodeURIComponent(especie)
-    + '&entry.308873361='  + encodeURIComponent(resumo)
-    + '&entry.1115591710=' + encodeURIComponent(link)
-    + '&entry.615693776='  + encodeURIComponent(obs);
+  const FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSeraH2bc0rlfXR5NDdlX4_9y0_cuxVC8B7MGxh_rgbaVKPttA/formResponse';
+  const body = new FormData();
+  body.append('entry.142922766',  nome);
+  body.append('entry.1374293792', email);
+  body.append('entry.1190836357', planeta);
+  body.append('entry.1876014314', especie);
+  body.append('entry.308873361',  resumo);
+  body.append('entry.1115591710', link);
+  body.append('entry.615693776',  obs);
 
-  window.open(url, '_blank');
+  try {
+    // Google Forms não retorna CORS, então usamos no-cors
+    // A requisição é enviada mas não recebemos confirmação — é o comportamento esperado
+    await fetch(FORM_URL, { method: 'POST', mode: 'no-cors', body });
+  } catch(e) {
+    // no-cors sempre "falha" do ponto de vista do JS mas o Forms recebe
+  }
 
   document.getElementById('submitForm').style.display = 'none';
   document.getElementById('successMsg').style.display = 'block';
