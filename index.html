@@ -250,6 +250,8 @@
   .btn-submit { width: 100%; background: var(--red); border: none; color: var(--cream); font-family: 'Bebas Neue', display; font-size: 1.3rem; letter-spacing: 6px; padding: 1rem; cursor: pointer; clip-path: polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%); transition: background 0.2s, transform 0.1s; margin-top: 0.5rem; }
   .btn-submit:hover { background: #a93226; }
   .btn-submit:active { transform: scale(0.98); }
+  .btn-submit.loading { opacity: 0.6; cursor: wait; }
+  .btn-submit.done { background: #27ae60; }
   .form-note { font-family: 'Crimson Pro', serif; font-size: 0.85rem; color: rgba(245,200,66,0.35); text-align: center; margin-top: 1rem; font-style: italic; }
   .check-row { display: flex; align-items: flex-start; gap: 0.8rem; }
   .check-row input[type="checkbox"] { width: auto; margin-top: 4px; accent-color: var(--red-light); flex-shrink: 0; }
@@ -502,6 +504,7 @@
     <li><a href="#manifesto">Manifesto</a></li>
     <li><a href="#regras">Regras</a></li>
     <li><a href="#envio">Enviar</a></li>
+    <li><a href="#galeria">Materiais</a></li>
   </ul>
 </nav>
 
@@ -716,7 +719,7 @@
   </div>
 
   <div class="form-wrap">
-    <form id="submitForm" action="https://docs.google.com/forms/d/e/1FAIpQLSeraH2bc0rlfXR5NDdlX4_9y0_cuxVC8B7MGxh_rgbaVKPttA/formResponse" method="POST" target="_blank" onsubmit="handleSubmit(event)">
+    <form id="submitForm" onsubmit="handleSubmit(event)">
 
       <div class="form-grid-2">
         <div class="form-row">
@@ -766,8 +769,9 @@
       <p class="form-note">As inscrições abrem em 01/07/2026. Os envios são revisados pelos organizadores antes da publicação.</p>
     </form>
     <div class="success-msg" id="successMsg">
-      <h3>★ Transmissão Enviada ★</h3>
-      <p>Seu material foi registrado com sucesso.<br>Um explorador entrará em contato em breve.</p>
+      <h3>★ Formulário Aberto ★</h3>
+      <p>Uma nova aba foi aberta com o Google Forms já preenchido.<br>Confirme os dados e clique em <strong style="color:var(--gold)">Enviar</strong> lá para registrar seu material.</p>
+      <p style="margin-top:0.8rem;font-size:0.85rem;color:rgba(245,200,66,0.4);font-style:italic;">Se a aba não abriu, verifique o bloqueador de popups do seu navegador.</p>
     </div>
   </div>
 </section>
@@ -818,11 +822,47 @@
 <script>
 // ── FORMULÁRIO ───────────────────────────────────────────────────────
 function handleSubmit(e) {
-  setTimeout(() => {
-    document.getElementById('submitForm').style.display = 'none';
-    document.getElementById('successMsg').style.display = 'block';
-    document.getElementById('successMsg').scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, 800);
+  e.preventDefault();
+
+  // Validação básica
+  const required = ['entry.142922766','entry.1374293792','entry.1190836357','entry.1876014314','entry.1115591710'];
+  for (const name of required) {
+    const el = document.querySelector('[name="' + name + '"]');
+    if (!el || !el.value.trim()) {
+      el && el.focus();
+      return;
+    }
+  }
+
+  const BASE = 'https://docs.google.com/forms/d/e/1FAIpQLSeraH2bc0rlfXR5NDdlX4_9y0_cuxVC8B7MGxh_rgbaVKPttA/viewform?usp=pp_url';
+  const params = new URLSearchParams({
+    'entry.142922766':  document.querySelector('[name="entry.142922766"]').value,
+    'entry.1374293792': document.querySelector('[name="entry.1374293792"]').value,
+    'entry.1190836357': document.querySelector('[name="entry.1190836357"]').value,
+    'entry.1876014314': document.querySelector('[name="entry.1876014314"]').value,
+    'entry.308873361':  document.querySelector('[name="entry.308873361"]').value || '',
+    'entry.1115591710': document.querySelector('[name="entry.1115591710"]').value,
+    'entry.615693776':  document.querySelector('[name="entry.615693776"]').value || '',
+  });
+
+  // Abre direto — dentro do handler do clique, nunca bloqueado
+  const url = BASE + '&' + params.toString();
+  const newTab = window.open(url, '_blank');
+  if (!newTab) {
+    // Fallback se popup blocker estiver ativo: redireciona na mesma aba
+    window.location.href = url;
+    return;
+  }
+
+  // Feedback visual
+  const btn = document.querySelector('.btn-submit');
+  btn.textContent = '✓ Formulário aberto!';
+  btn.classList.add('done');
+  btn.disabled = true;
+
+  document.getElementById('submitForm').style.display = 'none';
+  document.getElementById('successMsg').style.display = 'block';
+  document.getElementById('successMsg').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 // ── SMOOTH SCROLL ────────────────────────────────────────────────────
