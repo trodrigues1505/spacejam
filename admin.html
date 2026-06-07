@@ -160,6 +160,9 @@
         </div>
       </div>
 
+      <label>Imagem de Capa (URL)</label>
+      <input type="url" id="fImage" placeholder="https://drive.google.com/... ou qualquer link de imagem pública">
+
       <label>Resumo (1 linha)</label>
       <input type="text" id="fSummary" placeholder="Frase que captura a essência do planeta...">
 
@@ -308,6 +311,7 @@
     const data = {
       planet, species, author,
       fileUrl:  document.getElementById('fFile').value.trim(),
+      imageUrl: document.getElementById('fImage').value.trim(),
       summary:  document.getElementById('fSummary').value.trim(),
       col1:     document.getElementById('fCol1').value.trim(),
       col2:     document.getElementById('fCol2').value.trim(),
@@ -347,7 +351,8 @@
         document.getElementById('fPlanet').value  = d.planet  || '';
         document.getElementById('fSpecies').value = d.species || '';
         document.getElementById('fAuthor').value  = d.author  || '';
-        document.getElementById('fFile').value    = d.fileUrl || '';
+        document.getElementById('fFile').value    = d.fileUrl  || '';
+        document.getElementById('fImage').value   = d.imageUrl || '';
         document.getElementById('fSummary').value = d.summary || '';
         document.getElementById('fCol1').value    = d.col1    || '';
         document.getElementById('fCol2').value    = d.col2    || '';
@@ -372,7 +377,7 @@
 
   // ── HELPERS ──────────────────────────────────────────────────────────
   function clearForm() {
-    ['fPlanet','fSpecies','fAuthor','fFile','fSummary','fCol1','fCol2','fCol3','fCol4','editId']
+    ['fPlanet','fSpecies','fAuthor','fFile','fImage','fSummary','fCol1','fCol2','fCol3','fCol4','editId']
       .forEach(id => document.getElementById(id).value = '');
     document.getElementById('formTitle').textContent = 'Publicar Material';
     document.getElementById('btnPublish').textContent = '★ Publicar no Site';
@@ -512,4 +517,4 @@
   };
 </script>
 </body>
-</html>
+</html>   
