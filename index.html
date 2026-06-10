@@ -163,6 +163,15 @@
   .sep { max-width:1100px; margin:0 auto; padding:0 2rem; display:flex; align-items:center; gap:1rem; color:rgba(245,200,66,0.2); font-family:'Bebas Neue',display; letter-spacing:4px; font-size:0.7rem; }
   .sep::before, .sep::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,transparent,var(--border-gold),transparent); }
 
+  .btn-reaction { background:transparent; border:1px solid rgba(245,200,66,0.2); color:var(--text-body); font-family:'Special Elite',serif; font-size:0.8rem; padding:0.3rem 0.7rem; cursor:pointer; display:flex; align-items:center; gap:0.3rem; transition:all 0.2s; }
+  .btn-reaction:hover { border-color:var(--gold); color:var(--gold); }
+  .btn-reaction.liked { border-color:var(--red-light); color:var(--red-light); }
+  .reaction-icon { font-size:0.85rem; line-height:1; }
+  .reaction-count { font-family:'Bebas Neue',display; font-size:0.85rem; letter-spacing:1px; min-width:12px; }
+  .comment-item { background:rgba(245,200,66,0.03); border-left:2px solid rgba(245,200,66,0.2); padding:0.5rem 0.8rem; }
+  .comment-item .comment-author { font-family:'Bebas Neue',display; font-size:0.75rem; letter-spacing:2px; color:var(--gold); margin-bottom:0.2rem; }
+  .comment-item .comment-text { font-family:'Crimson Pro',serif; font-size:0.9rem; color:var(--text-body); line-height:1.5; }
+
   @keyframes fadeDown { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
   @keyframes bounce { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(8px)} }
   @keyframes twinkle { from{opacity:0.3} to{opacity:1} }
@@ -261,6 +270,16 @@
       <iframe class="modal-pdf" id="modalPdf" src="" frameborder="0" allowfullscreen></iframe>
     </div>
     <div class="modal-author" id="modalAuthor"></div>
+    <!-- COMENTÁRIOS NO MODAL -->
+    <div id="modalComments" style="padding:1rem 2rem 1.5rem;border-top:1px solid rgba(245,200,66,0.1);">
+      <div style="font-family:'Bebas Neue',display;font-size:0.8rem;letter-spacing:4px;color:var(--gold);margin-bottom:1rem;">Comentários</div>
+      <div id="commentsList" style="display:flex;flex-direction:column;gap:0.8rem;margin-bottom:1rem;max-height:220px;overflow-y:auto;"></div>
+      <div style="display:flex;gap:0.6rem;" id="commentForm">
+        <input type="text" id="commentName" placeholder="Seu nome" style="width:140px;background:rgba(245,200,66,0.04);border:1px solid rgba(245,200,66,0.25);color:var(--cream);font-family:'Special Elite',serif;font-size:0.85rem;padding:0.5rem 0.7rem;outline:none;flex-shrink:0;">
+        <input type="text" id="commentText" placeholder="Deixe um comentário..." style="flex:1;background:rgba(245,200,66,0.04);border:1px solid rgba(245,200,66,0.25);color:var(--cream);font-family:'Special Elite',serif;font-size:0.85rem;padding:0.5rem 0.7rem;outline:none;" onkeydown="if(event.key==='Enter')enviarComentario()">
+        <button onclick="enviarComentario()" style="background:transparent;border:1px solid var(--border-gold);color:var(--gold);font-family:'Bebas Neue',display;font-size:0.8rem;letter-spacing:2px;padding:0.5rem 1rem;cursor:pointer;white-space:nowrap;transition:all 0.2s;" onmouseover="this.style.background='var(--gold)';this.style.color='var(--bg-deep)'" onmouseout="this.style.background='transparent';this.style.color='var(--gold)'">Enviar</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -428,58 +447,6 @@
   </div>
 </section>
 
-<!-- ESPALHE A PALAVRA -->
-<div class="sep">✦ &nbsp; Sinal de Transmissão &nbsp; ✦</div>
-<section style="max-width:780px;margin:0 auto;padding:4rem 2rem;">
-  <div class="section-label">Apoio & Divulgação</div>
-  <div class="section-title">Espalhe o<br>Sinal</div>
-
-  <!-- TEXTO ZAP -->
-  <div style="border:2px solid var(--border-gold);background:rgba(245,200,66,0.03);padding:2rem;position:relative;margin-bottom:2rem;">
-    <div style="position:absolute;top:-0.6rem;left:1.5rem;background:var(--bg-deep);padding:0 0.5rem;font-family:'Bebas Neue',display;font-size:0.75rem;letter-spacing:4px;color:var(--red-light);">Texto para copiar e enviar</div>
-    <p id="zapText" style="font-family:'Crimson Pro',serif;font-size:1.05rem;color:var(--text-body);line-height:1.85;white-space:pre-wrap;">Ei. Você gosta de Space Dragon?
-
-Tem uma jam rolando — independente, sem regras sobre ferramentas, sem porteiro decidindo quem cria do jeito "certo".
-
-O tema é Planetas & Espécies. Você cria um planeta, uma espécie, monta o PDF no formato do sistema e manda. Só isso.
-
-Tem material já publicado no site. Vale a pena abrir, ler, e se curtir — comentar ou compartilhar conta muito pra quem tá construindo isso do zero.
-
-🔗 https://trodrigues1505.github.io/spacejam
-
-Se quiser acompanhar de perto ou mandar o seu: o grupo tá aberto.
-
-👉 https://chat.whatsapp.com/J2a32MG4sHNFRTcBI5E26X
-
-Inscrições até 18/06.</p>
-    <div style="display:flex;gap:1rem;margin-top:1.5rem;flex-wrap:wrap;">
-      <button onclick="copiarZap()" id="btnCopiar" style="background:transparent;border:2px solid var(--gold);color:var(--gold);font-family:'Bebas Neue',display;font-size:0.85rem;letter-spacing:4px;padding:0.6rem 1.5rem;cursor:pointer;transition:all 0.2s;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);" onmouseover="this.style.background='var(--gold)';this.style.color='var(--bg-deep)'" onmouseout="this.style.background='transparent';this.style.color='var(--gold)'">
-        ✦ Copiar texto
-      </button>
-      <a href="https://chat.whatsapp.com/J2a32MG4sHNFRTcBI5E26X" target="_blank" rel="noopener" class="btn-whatsapp">★ Entrar no grupo</a>
-    </div>
-  </div>
-
-  <!-- TRÊS FORMAS DE APOIAR -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.2rem;">
-    <div style="border:1px solid var(--border-gold);padding:1.5rem;position:relative;">
-      <div style="font-family:'Bebas Neue',display;font-size:2.5rem;color:rgba(245,200,66,0.07);position:absolute;top:0.5rem;right:0.8rem;line-height:1;">①</div>
-      <div style="font-family:'Russo One',display;font-size:0.8rem;color:var(--gold);letter-spacing:3px;margin-bottom:0.8rem;text-transform:uppercase;">Leia o material</div>
-      <p style="font-family:'Crimson Pro',serif;font-size:0.95rem;color:var(--text-body);line-height:1.55;">Cada PDF publicado na galeria tem trabalho real de design e mecânica. Abrir já conta.</p>
-    </div>
-    <div style="border:1px solid var(--border-gold);padding:1.5rem;position:relative;">
-      <div style="font-family:'Bebas Neue',display;font-size:2.5rem;color:rgba(245,200,66,0.07);position:absolute;top:0.5rem;right:0.8rem;line-height:1;">②</div>
-      <div style="font-family:'Russo One',display;font-size:0.8rem;color:var(--gold);letter-spacing:3px;margin-bottom:0.8rem;text-transform:uppercase;">Comente ou curta</div>
-      <p style="font-family:'Crimson Pro',serif;font-size:0.95rem;color:var(--text-body);line-height:1.55;">Feedback público — no grupo, nas redes, onde for — mostra que existe audiência. Isso importa.</p>
-    </div>
-    <div style="border:1px solid var(--border-gold);padding:1.5rem;position:relative;">
-      <div style="font-family:'Bebas Neue',display;font-size:2.5rem;color:rgba(245,200,66,0.07);position:absolute;top:0.5rem;right:0.8rem;line-height:1;">③</div>
-      <div style="font-family:'Russo One',display;font-size:0.8rem;color:var(--gold);letter-spacing:3px;margin-bottom:0.8rem;text-transform:uppercase;">Mande pro grupo</div>
-      <p style="font-family:'Crimson Pro',serif;font-size:0.95rem;color:var(--text-body);line-height:1.55;">Se tem alguém que joga Space Dragon e não sabe que isso existe — já sabe o que fazer.</p>
-    </div>
-  </div>
-</section>
-
 <footer>
   <p><span class="star">✦</span> <strong>Space Jam</strong> — Edição Independente · 2026 · Sistema <strong>Space Dragon</strong> por Igor Moreno <span class="star">✦</span><span class="star">✦</span></p>
   <p style="margin-top:0.5rem;">Criado por quem acredita que liberdade criativa não tem prazo de validade</p>
@@ -490,7 +457,7 @@ Inscrições até 18/06.</p>
 <!-- FIREBASE + APOIADORES -->
 <script type="module">
   import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, onSnapshot, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, getDocs, onSnapshot, query, where, orderBy, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAjdwDjAmIkrUuhvYK1zjeh4_poXpxqfy4",
@@ -505,6 +472,110 @@ Inscrições até 18/06.</p>
   const db = getFirestore(app);
   const supCol = collection(db, "supporters");
   const subCol = collection(db, "submissions");
+  const likesCol = collection(db, "likes");
+  const commentsCol = collection(db, "comments");
+
+  // ID anônimo de sessão para curtidas
+  let sessionId = sessionStorage.getItem('spacejam_sid');
+  if (!sessionId) { sessionId = Math.random().toString(36).slice(2); sessionStorage.setItem('spacejam_sid', sessionId); }
+
+  // --- CURTIDAS ---
+  window.toggleLike = async function(itemId, btn) {
+    const likeId = sessionId + '_' + itemId;
+    const q = query(likesCol, where("likeId","==",likeId));
+    const snap = await getDocs(q);
+    if (snap.empty) {
+      await addDoc(likesCol, { likeId, itemId, ts: Date.now() });
+      btn.classList.add('liked');
+    } else {
+      await Promise.all(snap.docs.map(d => deleteDoc(doc(db, "likes", d.id))));
+      btn.classList.remove('liked');
+    }
+  };
+
+  // Observa contagem de curtidas em tempo real por item
+  window._likeUnsubs = {};
+  window.watchLikes = function(itemId) {
+    if (window._likeUnsubs[itemId]) return;
+    const q = query(likesCol, where("itemId","==",itemId));
+    window._likeUnsubs[itemId] = onSnapshot(q, snap => {
+      const el = document.getElementById('likes-' + itemId);
+      if (el) el.textContent = snap.size || '';
+      // marca botão se esta sessão curtiu
+      const myLike = snap.docs.some(d => d.data().likeId === sessionId + '_' + itemId);
+      const btn = document.querySelector(`[data-id="${itemId}"]`);
+      if (btn) btn.classList.toggle('liked', myLike);
+    });
+  };
+
+  // --- COMENTÁRIOS ---
+  let _currentItemId = null;
+
+  window.abrirComentario = function(itemId, e) {
+    e.stopPropagation();
+    _currentItemId = itemId;
+    // Abre o modal do item correspondente
+    const card = e.target.closest('.gallery-card');
+    if (card) card.click();
+    // Foca no input depois que o modal abrir
+    setTimeout(() => {
+      const input = document.getElementById('commentText');
+      if (input) input.focus();
+    }, 300);
+  };
+
+  window.enviarComentario = async function() {
+    const name = document.getElementById('commentName').value.trim();
+    const text = document.getElementById('commentText').value.trim();
+    if (!text) return;
+    await addDoc(commentsCol, {
+      itemId: _currentItemId,
+      name: name || 'Anônimo',
+      text,
+      ts: Date.now()
+    });
+    document.getElementById('commentText').value = '';
+  };
+
+  window.watchComments = function(itemId) {
+    const q = query(commentsCol, where("itemId","==",itemId), orderBy("ts","asc"));
+    onSnapshot(q, snap => {
+      // contagem no card
+      const countEl = document.getElementById('comments-' + itemId);
+      if (countEl) countEl.textContent = snap.size || '';
+      // lista no modal
+      if (_currentItemId === itemId) {
+        const list = document.getElementById('commentsList');
+        if (!list) return;
+        if (snap.empty) {
+          list.innerHTML = '<p style="font-family:\'Crimson Pro\',serif;font-size:0.85rem;color:rgba(245,200,66,0.3);font-style:italic;">Nenhum comentário ainda. Seja o primeiro.</p>';
+          return;
+        }
+        list.innerHTML = snap.docs.map(d => {
+          const c = d.data();
+          return `<div class="comment-item"><div class="comment-author">${c.name}</div><div class="comment-text">${c.text}</div></div>`;
+        }).join('');
+        list.scrollTop = list.scrollHeight;
+      }
+    });
+  };
+
+  // --- COMPARTILHAR ---
+  window.compartilhar = function(planet, itemId, e) {
+    e.stopPropagation();
+    const url = 'https://trodrigues1505.github.io/spacejam';
+    const texto = `Confira "${planet}" na Space Jam — jam independente de Space Dragon: ${url}`;
+    if (navigator.share) {
+      navigator.share({ title: planet, text: texto, url });
+    } else {
+      navigator.clipboard.writeText(texto).then(() => {
+        const btn = e.currentTarget;
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<span class="reaction-icon">✓</span>';
+        setTimeout(() => btn.innerHTML = orig, 1500);
+      });
+    }
+  };
 
   onSnapshot(supCol, (snapshot) => {
     const list = snapshot.docs.map(d => d.data());
@@ -582,12 +653,31 @@ Inscrições até 18/06.</p>
           <div class="gallery-card-summary">${item.summary||'Sem descrição.'}</div>
           <div class="gallery-card-author">por ${item.author}</div>
         </div>
-        <div class="gallery-card-footer"><button class="btn-ver">Ver Material ▸</button></div>
+        <div class="gallery-card-footer" style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;">
+          <div style="display:flex;gap:0.4rem;" onclick="event.stopPropagation()">
+            <button class="btn-reaction" onclick="toggleLike('${item.id}',this)" data-id="${item.id}" title="Curtir">
+              <span class="reaction-icon">♥</span><span class="reaction-count" id="likes-${item.id}">0</span>
+            </button>
+            <button class="btn-reaction" onclick="abrirComentario('${item.id}',event)" title="Comentar">
+              <span class="reaction-icon">💬</span><span class="reaction-count" id="comments-${item.id}">0</span>
+            </button>
+            <button class="btn-reaction" onclick="compartilhar('${item.planet}','${item.id}',event)" title="Compartilhar">
+              <span class="reaction-icon">↗</span>
+            </button>
+          </div>
+          <button class="btn-ver">Ver Material ▸</button>
+        </div>
       </div>
     `).join('');
+    // inicia watchers para cada item
+    items.forEach(item => {
+      watchLikes(item.id);
+      watchComments(item.id);
+    });
   }
 
   window.openModal = function(item) {
+    _currentItemId = item.id;
     document.getElementById('modalPlanet').textContent = item.planet;
     document.getElementById('modalSpecies').textContent = item.species;
     document.getElementById('modalAuthor').textContent = 'Criado por ' + item.author;
@@ -606,6 +696,8 @@ Inscrições até 18/06.</p>
       pdfEl.src = embedUrl;
       pdfEl.style.display = 'block';
     } else { pdfEl.style.display = 'none'; }
+    // carrega comentários do item aberto
+    watchComments(item.id);
     document.getElementById('modalOverlay').classList.add('open');
     document.body.style.overflow = 'hidden';
   };
