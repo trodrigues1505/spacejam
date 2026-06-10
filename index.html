@@ -428,6 +428,58 @@
   </div>
 </section>
 
+<!-- ESPALHE A PALAVRA -->
+<div class="sep">✦ &nbsp; Sinal de Transmissão &nbsp; ✦</div>
+<section style="max-width:780px;margin:0 auto;padding:4rem 2rem;">
+  <div class="section-label">Apoio & Divulgação</div>
+  <div class="section-title">Espalhe o<br>Sinal</div>
+
+  <!-- TEXTO ZAP -->
+  <div style="border:2px solid var(--border-gold);background:rgba(245,200,66,0.03);padding:2rem;position:relative;margin-bottom:2rem;">
+    <div style="position:absolute;top:-0.6rem;left:1.5rem;background:var(--bg-deep);padding:0 0.5rem;font-family:'Bebas Neue',display;font-size:0.75rem;letter-spacing:4px;color:var(--red-light);">Texto para copiar e enviar</div>
+    <p id="zapText" style="font-family:'Crimson Pro',serif;font-size:1.05rem;color:var(--text-body);line-height:1.85;white-space:pre-wrap;">Ei. Você gosta de Space Dragon?
+
+Tem uma jam rolando — independente, sem regras sobre ferramentas, sem porteiro decidindo quem cria do jeito "certo".
+
+O tema é Planetas & Espécies. Você cria um planeta, uma espécie, monta o PDF no formato do sistema e manda. Só isso.
+
+Tem material já publicado no site. Vale a pena abrir, ler, e se curtir — comentar ou compartilhar conta muito pra quem tá construindo isso do zero.
+
+🔗 https://trodrigues1505.github.io/spacejam
+
+Se quiser acompanhar de perto ou mandar o seu: o grupo tá aberto.
+
+👉 https://chat.whatsapp.com/J2a32MG4sHNFRTcBI5E26X
+
+Inscrições até 18/06.</p>
+    <div style="display:flex;gap:1rem;margin-top:1.5rem;flex-wrap:wrap;">
+      <button onclick="copiarZap()" id="btnCopiar" style="background:transparent;border:2px solid var(--gold);color:var(--gold);font-family:'Bebas Neue',display;font-size:0.85rem;letter-spacing:4px;padding:0.6rem 1.5rem;cursor:pointer;transition:all 0.2s;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);" onmouseover="this.style.background='var(--gold)';this.style.color='var(--bg-deep)'" onmouseout="this.style.background='transparent';this.style.color='var(--gold)'">
+        ✦ Copiar texto
+      </button>
+      <a href="https://chat.whatsapp.com/J2a32MG4sHNFRTcBI5E26X" target="_blank" rel="noopener" class="btn-whatsapp">★ Entrar no grupo</a>
+    </div>
+  </div>
+
+  <!-- TRÊS FORMAS DE APOIAR -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.2rem;">
+    <div style="border:1px solid var(--border-gold);padding:1.5rem;position:relative;">
+      <div style="font-family:'Bebas Neue',display;font-size:2.5rem;color:rgba(245,200,66,0.07);position:absolute;top:0.5rem;right:0.8rem;line-height:1;">①</div>
+      <div style="font-family:'Russo One',display;font-size:0.8rem;color:var(--gold);letter-spacing:3px;margin-bottom:0.8rem;text-transform:uppercase;">Leia o material</div>
+      <p style="font-family:'Crimson Pro',serif;font-size:0.95rem;color:var(--text-body);line-height:1.55;">Cada PDF publicado na galeria tem trabalho real de design e mecânica. Abrir já conta.</p>
+    </div>
+    <div style="border:1px solid var(--border-gold);padding:1.5rem;position:relative;">
+      <div style="font-family:'Bebas Neue',display;font-size:2.5rem;color:rgba(245,200,66,0.07);position:absolute;top:0.5rem;right:0.8rem;line-height:1;">②</div>
+      <div style="font-family:'Russo One',display;font-size:0.8rem;color:var(--gold);letter-spacing:3px;margin-bottom:0.8rem;text-transform:uppercase;">Comente ou curta</div>
+      <p style="font-family:'Crimson Pro',serif;font-size:0.95rem;color:var(--text-body);line-height:1.55;">Feedback público — no grupo, nas redes, onde for — mostra que existe audiência. Isso importa.</p>
+    </div>
+    <div style="border:1px solid var(--border-gold);padding:1.5rem;position:relative;">
+      <div style="font-family:'Bebas Neue',display;font-size:2.5rem;color:rgba(245,200,66,0.07);position:absolute;top:0.5rem;right:0.8rem;line-height:1;">③</div>
+      <div style="font-family:'Russo One',display;font-size:0.8rem;color:var(--gold);letter-spacing:3px;margin-bottom:0.8rem;text-transform:uppercase;">Mande pro grupo</div>
+      <p style="font-family:'Crimson Pro',serif;font-size:0.95rem;color:var(--text-body);line-height:1.55;">Se tem alguém que joga Space Dragon e não sabe que isso existe — já sabe o que fazer.</p>
+    </div>
+  </div>
+</section>
+
 <footer>
   <p><span class="star">✦</span> <strong>Space Jam</strong> — Edição Independente · 2026 · Sistema <strong>Space Dragon</strong> por Igor Moreno <span class="star">✦</span><span class="star">✦</span></p>
   <p style="margin-top:0.5rem;">Criado por quem acredita que liberdade criativa não tem prazo de validade</p>
@@ -623,6 +675,22 @@ async function abrirForms() {
   document.getElementById('successMsg').scrollIntoView({ behavior:'smooth', block:'center' });
 }
 
+function copiarZap() {
+  const texto = document.getElementById('zapText').innerText;
+  navigator.clipboard.writeText(texto).then(() => {
+    const btn = document.getElementById('btnCopiar');
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copiado!';
+    btn.style.background = 'var(--gold)';
+    btn.style.color = 'var(--bg-deep)';
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.style.background = 'transparent';
+      btn.style.color = 'var(--gold)';
+    }, 2000);
+  });
+}
+
 document.querySelectorAll('a[href^="#"]').forEach(a => {
   a.addEventListener('click', e => {
     e.preventDefault();
@@ -632,4 +700,4 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
 });
 </script>
 </body>
-</html>   
+</html>
