@@ -24,6 +24,8 @@
   nav ul { display:flex; gap:1.5rem; list-style:none; }
   nav ul a { color:var(--cream); text-decoration:none; font-family:'Bebas Neue',display; font-size:0.95rem; letter-spacing:2px; transition:color 0.2s; opacity:0.8; }
   nav ul a:hover { color:var(--gold); opacity:1; }
+  nav ul a.nav-whatsapp { color:#25D366; opacity:1; }
+  nav ul a.nav-whatsapp:hover { color:#1aab52; opacity:1; }
 
   .hero { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:6rem 2rem 4rem; position:relative; overflow:hidden; }
   .hero-glow { position:absolute; width:600px; height:600px; background:radial-gradient(circle,rgba(192,57,43,0.12) 0%,transparent 70%); top:50%; left:50%; transform:translate(-50%,-50%); pointer-events:none; }
@@ -47,6 +49,8 @@
   .btn-support { background:transparent; border:2px solid var(--gold); color:var(--gold); font-family:'Bebas Neue',display; font-size:0.85rem; letter-spacing:4px; padding:0.6rem 1.5rem; cursor:pointer; transition:all 0.2s; clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%); }
   .btn-support:hover { background:var(--gold); color:var(--bg-deep); }
   .btn-support.signed { border-color:var(--red-light); color:var(--red-light); cursor:default; }
+  .btn-whatsapp { display:inline-block; background:transparent; border:2px solid #25D366; color:#25D366; font-family:'Bebas Neue',display; font-size:0.85rem; letter-spacing:4px; padding:0.6rem 1.5rem; text-decoration:none; transition:all 0.2s; clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%); }
+  .btn-whatsapp:hover { background:#25D366; color:#0A0D1A; }
   .supporter-avatar { width:32px; height:32px; border-radius:50%; border:2px solid var(--gold); object-fit:cover; }
   .avatars-row { display:flex; gap:4px; flex-wrap:wrap; max-width:200px; }
 
@@ -186,6 +190,7 @@
     <li><a href="#regras">Regras</a></li>
     <li><a href="#envio">Enviar</a></li>
     <li><a href="#historia">História</a></li>
+    <li><a href="https://chat.whatsapp.com/J2a32MG4sHNFRTcBI5E26X" target="_blank" rel="noopener" class="nav-whatsapp">★ WhatsApp</a></li>
   </ul>
 </nav>
 
@@ -221,6 +226,11 @@
     <div class="avatars-row" id="avatarsRow"></div>
     <button class="btn-support" id="btnSupport" onclick="handleSupportClick()">★ Apoiar com Google</button>
     <div id="supportedMsg" style="display:none;font-family:'Special Elite',serif;font-size:0.75rem;color:var(--red-light);letter-spacing:2px;">✓ Você já apoiou</div>
+  </div>
+  <div class="supporters-divider"></div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:0.8rem;text-align:center;">
+    <div style="font-family:'Bebas Neue',display;font-size:0.75rem;letter-spacing:3px;color:rgba(245,200,66,0.5);">Comunidade</div>
+    <a href="https://chat.whatsapp.com/J2a32MG4sHNFRTcBI5E26X" target="_blank" rel="noopener" class="btn-whatsapp">★ Entrar no WhatsApp</a>
   </div>
 </div>
 
@@ -444,7 +454,6 @@
   const supCol = collection(db, "supporters");
   const subCol = collection(db, "submissions");
 
-  // Apoiadores em tempo real
   onSnapshot(supCol, (snapshot) => {
     const list = snapshot.docs.map(d => d.data());
     document.getElementById('supportCount').textContent = list.length;
@@ -495,7 +504,6 @@
     google.accounts.id.prompt();
   };
 
-  // Galeria em tempo real
   const qSub = query(subCol, orderBy("ts","desc"));
   onSnapshot(qSub, (snapshot) => {
     const items = snapshot.docs.map(d => ({ id:d.id, ...d.data() }));
